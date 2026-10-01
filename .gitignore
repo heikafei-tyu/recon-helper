@@ -1,4 +1,10 @@
-* __pycache__/
+__pycache__/
+.venv/
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+output/
 *.pyc
 .env
 *.xlsx.tmp

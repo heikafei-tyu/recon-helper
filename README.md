@@ -6,14 +6,30 @@
 ## 解决什么问题
 人工核对多张 Excel 报表耗时易错（差 2 万是算错、舍入还是漏单？），本工具自动定位"哪一行哪一列、差多少、大概率什么原因"。
 
+## 当前状态
+M1 已实现读取层；M2–M5 为后续开发计划。当前不生成对账报告。
+
 ## 安装
-pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+Python 3.10+，在仓库目录执行：
+```powershell
+python -m pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+python -m pip install -e . -i https://pypi.tuna.tsinghua.edu.cn/simple
+```
 
 ## 运行
-recon read examples/orders.xlsx        # 查看表格摘要
-recon run examples/rules.yaml          # 按规则核对，输出差异
-recon bench                            # 性能基准测试
-recon report --out report.xlsx         # 生成核对报告
+```powershell
+recon read examples/orders.xlsx
+python -m recon read examples/orders-gbk.csv
+python -m recon read examples/orders-utf16.csv
+python -m recon read examples/orders.json
+python -m pytest -q
+```
+读取首个 XLSX 工作表、带表头的 CSV、非空对象数组 JSON。
+列名须非空且唯一，每行字段须一致。标识符保留前导零，空值统一为 null。
+编码自动支持 UTF-8、GBK、带 BOM 的 UTF-16；存在歧义时用 `--encoding` 指定。
+XLSX 公式会报错，须先转换为已核验的数值。类型推断仅用于摘要，不改变单元格文本。
 
 ## 运行产物
-核对报告（xlsx）：差异高亮 + 汇总页（表名/行号/列/两边值/差值/疑似原因）
+当前输出 JSON 摘要：row_count、columns、types；输入错误返回退出码 2。
+examples 中所有数据为虚构示例，运行 `python examples/generate.py` 可重新生成。
+后续计划依次实现 YAML 对账规则、按列容差、性能基准、Excel 报告与内容哈希增量核对。
