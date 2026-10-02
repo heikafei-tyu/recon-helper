@@ -15,7 +15,9 @@ def _digest(path):
 def create_report(rules_file, output, incremental=False):
     rules_path = Path(rules_file)
     output = Path(output)
-    sources = [rules_path, rules_path.parent / "orders.csv", rules_path.parent / "bank.csv"]
+    import yaml
+    config = yaml.safe_load(rules_path.read_text(encoding="utf-8-sig"))
+    sources = [rules_path, rules_path.parent / config["left"], rules_path.parent / config["right"]]
     manifest = {str(p): _digest(p) for p in sources if p.exists()}
     marker = output.with_suffix(output.suffix + ".manifest.json")
     if incremental and output.exists() and marker.exists() and json.loads(marker.read_text()) == manifest:
@@ -34,7 +36,7 @@ def create_report(rules_file, output, incremental=False):
             for cell in sheet[sheet.max_row]: cell.fill = red
     summary = book.create_sheet("Summary")
     summary.append(["metric", "value"])
-    for key, value in [("left_rows", result["left_rows"]), ("right_rows", result["right_rows"]), ("differences", len(rows)), ("mismatches", sum(r.get("status") == "mismatch" for r in rows))]: summary.append([key, value])
+    for key, value in [("left_rows", result["left_rows"]), ("right_rows", result["right_rows"]), ("differences", len(rows)), ("mismatches", sum(r.get("status") == "mismatch" for r in rows)), ("within_tolerance", sum(r.get("status") == "within_tolerance" for r in rows))]: summary.append([key, value])
     output.parent.mkdir(parents=True, exist_ok=True)
     book.save(output)
     marker.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
