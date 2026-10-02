@@ -8,3 +8,8 @@ tolerance:
   amount:
     absolute: "0.01"
     round: 2
+filters:
+  left:
+    - field: order_id
+      op: ne
+      value: "excluded"

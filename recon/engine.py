@@ -1,18 +1,16 @@
 """按 YAML 指定的唯一键和字段比较两张表。"""
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
-from pathlib import Path
 
-import yaml
-
+from .config import load_rule_config
+from .filters import matches
 from .readers import read_table
+from .transforms import transform
 
 
 def run_rules(filename):
-    path = Path(filename)
-    try:
-        config = yaml.safe_load(path.read_text(encoding="utf-8-sig"))
-    except yaml.YAMLError as exc:
-        raise ValueError(f"YAML 格式错误：{exc}") from exc
+    rule_config = load_rule_config(filename)
+    path = rule_config.source
+    config = rule_config.raw
     if not isinstance(config, dict):
         raise ValueError("规则必须是对象")
     for field in ("left", "right", "columns"):
@@ -91,6 +89,10 @@ def run_rules(filename):
         key_indexes = [table.columns.index(column) for column in key_columns]
         index = {}
         for number, row in enumerate(table.rows, 2):
+            record = dict(zip(table.columns, row))
+            filter_conditions = config.get("filters", {}).get("left" if table is tables[0] else "right", [])
+            if not matches(record, filter_conditions):
+                continue
             key = tuple(clean(row[index]) for index in key_indexes)
             if any(value is None or not str(value).strip() for value in key) or key in index:
                 raise ValueError(f"第 {number} 行关联键为空或重复")
@@ -105,7 +107,9 @@ def run_rules(filename):
             continue
         for left_column, right_column in mappings:
             column = left_column
-            a, b = clean(left[key][1][left_column]), clean(right[key][1][right_column])
+            operations = config.get("transforms", {}).get(left_column, [])
+            a = transform(clean(left[key][1][left_column]), operations)
+            b = transform(clean(right[key][1][right_column]), operations)
             if a is None or b is None:
                 if a is None and b is None and null_policy == "equal":
                     continue

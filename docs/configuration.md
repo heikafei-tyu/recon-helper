@@ -34,3 +34,25 @@ tolerance:
 ```
 
 引擎按优先级从高到低尝试，第一条命中的规则生效。`absolute` 是绝对差额，`relative` 按两边较大绝对值计算，`round` 使用四舍五入到指定小数位。
+
+可在关联前筛选每张表：
+
+```yaml
+filters:
+  left:
+    - field: status
+      op: eq
+      value: settled
+  right:
+    - field: amount
+      op: gte
+      value: 0
+```
+
+支持 `eq`、`ne`、`in`、`contains`、`gt`、`gte`、`lt`、`lte`。字段转换在比较前执行：
+
+```yaml
+transforms:
+  amount: [trim, decimal]
+  customer: [trim, casefold]
+```
