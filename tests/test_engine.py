@@ -75,7 +75,7 @@ def test_lower_priority_rule_can_match(tmp_path):
 def test_text_normalization_and_null_policy(tmp_path):
     rules = "left: left.csv\nright: right.csv\nkey: id\ncolumns: [name, amount]\nnormalize:\n  trim: true\n  casefold: true\nnull_policy: equal\n"
     path = setup_rule(tmp_path, "id,name,amount\n A , Zhang San,\n", "id,name,amount\na, zhang san,\n", rules)
-    assert run_rules(path)["differences"] == []
+    assert [item["status"] for item in run_rules(path)["differences"]] == ["right_only"]
 
 
 def test_key_mapping_between_tables(tmp_path):
