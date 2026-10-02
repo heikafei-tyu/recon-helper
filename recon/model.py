@@ -8,6 +8,11 @@ from .errors import ReadError
 class Table:
     columns: tuple[str, ...]
     rows: tuple[tuple[str | None, ...], ...]
+    source: str = ""
+    format: str = ""
+    encoding: str | None = None
+    delimiter: str | None = None
+    sheet_name: str | None = None
 
     @classmethod
     def from_records(cls, header, records):
