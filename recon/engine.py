@@ -94,26 +94,27 @@ def run_rules(filename):
                     candidates = configured if isinstance(configured, list) else [configured]
                     candidates = [dict(default_tol, **candidate) for candidate in candidates]
                     candidates.sort(key=lambda item: item.get("priority", 0), reverse=True)
-                    rules = candidates[0] if candidates else {}
-                    if "round" in rules:
-                        places = int(rules["round"])
-                        quantum = Decimal(1).scaleb(-places)
-                        da, db = da.quantize(quantum, rounding=ROUND_HALF_UP), db.quantize(quantum, rounding=ROUND_HALF_UP)
-                    delta_value = da - db
-                    if delta_value == 0:
+                    matched = False
+                    for rules in candidates:
+                        rule_da, rule_db = da, db
+                        if "round" in rules:
+                            quantum = Decimal(1).scaleb(-int(rules["round"]))
+                            rule_da, rule_db = rule_da.quantize(quantum, rounding=ROUND_HALF_UP), rule_db.quantize(quantum, rounding=ROUND_HALF_UP)
+                        delta_value = rule_da - rule_db
+                        if delta_value == 0:
+                            matched = True
+                            break
+                        absolute_limit = Decimal(str(rules.get("absolute", "0")))
+                        relative_limit = max(abs(rule_da), abs(rule_db)) * Decimal(str(rules.get("relative", "0")))
+                        threshold = max(absolute_limit, relative_limit)
+                        if abs(delta_value) <= threshold:
+                            method = "absolute" if absolute_limit >= relative_limit else "relative"
+                            differences.append({"key": display_key, "status": "within_tolerance", "column": column, "left_value": a, "right_value": b, "difference": str(delta_value), "tolerance": str(threshold), "tolerance_type": method, "tolerance_rule": rules.get("name", column), "relative_base": str(max(abs(rule_da), abs(rule_db))), "rule_priority": rules.get("priority", 0)})
+                            matched = True
+                            break
+                    if matched:
                         continue
-                    absolute = Decimal(str(rules.get("absolute", "0")))
-                    relative = Decimal(str(rules.get("relative", "0")))
-                    absolute_limit = absolute
-                    relative_limit = max(abs(da), abs(db)) * relative
-                    threshold = max(absolute_limit, relative_limit)
-                    if abs(delta_value) <= threshold:
-                        method = "absolute" if absolute_limit >= relative_limit else "relative"
-                        differences.append({"key": display_key, "status": "within_tolerance", "column": column, "left_value": a, "right_value": b, "difference": str(delta_value), "tolerance": str(threshold), "tolerance_type": method, "tolerance_rule": rules.get("name", column), "relative_base": str(max(abs(da), abs(db))), "rule_priority": rules.get("priority", 0)})
-                        continue
-                    if da == db:
-                        continue
-                    delta = str(delta_value)
+                    delta = str(da - db)
             except (InvalidOperation, TypeError, ValueError):
                 pass
             differences.append({"key": display_key, "status": "mismatch", "left_table": config["left"], "right_table": config["right"], "left_row": left[key][0], "right_row": right[key][0], "column": column, "left_value": a, "right_value": b, "difference": delta})

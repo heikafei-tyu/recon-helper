@@ -64,6 +64,14 @@ def test_priority_selects_named_tolerance_rule(tmp_path):
     assert item["rule_priority"] == 10
 
 
+def test_lower_priority_rule_can_match(tmp_path):
+    rules = "left: left.csv\nright: right.csv\nkey: id\ncolumns: [amount]\ntolerance:\n  amount:\n    - name: strict\n      absolute: '0.01'\n      priority: 20\n    - name: business\n      absolute: '0.10'\n      priority: 10\n"
+    path = setup_rule(tmp_path, "id,amount\na,10.00\n", "id,amount\na,10.05\n", rules)
+    item = run_rules(path)["differences"][0]
+    assert item["tolerance_rule"] == "business"
+    assert item["rule_priority"] == 10
+
+
 def test_composite_key_and_field_mapping(tmp_path):
     rules = "left: left.csv\nright: right.csv\nkeys: [customer, date]\ncolumns:\n  - left: amount\n    right: total\n"
     path = setup_rule(tmp_path, "customer,date,amount\na,2026-01-01,10\n", "customer,date,total\na,2026-01-01,12\n", rules)
