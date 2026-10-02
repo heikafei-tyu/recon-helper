@@ -1,5 +1,7 @@
 from openpyxl import load_workbook
+
 from recon.report import create_report
+
 
 def test_report_and_incremental_skip(tmp_path):
     (tmp_path / "custom-left.csv").write_text("id,amount\na,1\n", encoding="utf-8")

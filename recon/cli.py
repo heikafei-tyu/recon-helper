@@ -3,9 +3,9 @@ import json
 import sys
 from zipfile import BadZipFile
 
-from .readers import read_table
-from .engine import run_rules
 from .benchmark import benchmark
+from .engine import run_rules
+from .readers import read_table
 from .report import create_report
 
 

@@ -1,9 +1,12 @@
 import hashlib
 import json
 from pathlib import Path
+
 from openpyxl import Workbook, load_workbook
-from openpyxl.styles import PatternFill, Font
+from openpyxl.styles import Font, PatternFill
+
 from .engine import run_rules
+
 
 def _digest(path):
     h = hashlib.sha256()
@@ -46,14 +49,17 @@ def create_report(rules_file, output, incremental=False):
         sheet.append([" / ".join(row[k]) if isinstance(row.get(k), (tuple, list)) else row.get(k) for k in columns])
         fill = fills.get(row.get("status"))
         if fill:
-            for cell in sheet[sheet.max_row]: cell.fill = fill
+            for cell in sheet[sheet.max_row]:
+                cell.fill = fill
     for column_cells in sheet.columns:
         letter = column_cells[0].column_letter
         sheet.column_dimensions[letter].width = min(40, max(12, max(len(str(cell.value or "")) for cell in column_cells) + 2))
     summary = book.create_sheet("Summary")
     summary.append(["metric", "value"])
     counts = {status: sum(r.get("status") == status for r in rows) for status in ("mismatch", "within_tolerance", "left_only", "right_only")}
-    for key, value in [("left_rows", result["left_rows"]), ("right_rows", result["right_rows"]), ("differences", len(rows)), *counts.items()]: summary.append([key, value])
+    summary_rows = [("left_rows", result["left_rows"]), ("right_rows", result["right_rows"]), ("differences", len(rows)), *counts.items()]
+    for key, value in summary_rows:
+        summary.append([key, value])
     summary.freeze_panes = "A2"
     output.parent.mkdir(parents=True, exist_ok=True)
     book.save(output)

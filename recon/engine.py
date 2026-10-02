@@ -1,6 +1,5 @@
 """按 YAML 指定的唯一键和字段比较两张表。"""
-from decimal import Decimal, InvalidOperation
-from decimal import ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from pathlib import Path
 
 import yaml

@@ -1,6 +1,5 @@
 import csv
 import io
-import csv
 
 from ..errors import ReadError
 from ..model import Table
