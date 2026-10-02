@@ -27,6 +27,7 @@ python -m pip install -e . -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
 开发环境还可安装 `requirements-dev.txt`，其中包含 pytest、ruff 和构建工具。
+新环境的最短安装流程见 [docs/quickstart.md](docs/quickstart.md)。
 
 ## 运行
 ```powershell

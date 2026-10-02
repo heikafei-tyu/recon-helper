@@ -5,6 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "recon-helper"
 version = "0.1.0"
+description = "本地 CSV、XLSX 和 JSON 对账核对工具"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [{name = "recon-helper contributors"}]
+classifiers = ["Programming Language :: Python :: 3", "Programming Language :: Python :: 3 :: Only", "License :: OSI Approved :: MIT License"]
 requires-python = ">=3.10"
 dependencies = ["openpyxl>=3.1", "pandas>=2.0", "PyYAML>=6.0"]
 
