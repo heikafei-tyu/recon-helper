@@ -3,6 +3,16 @@
 ## 是什么
 一个本地命令行工具：读取多份表格（xlsx/csv/json），按规则做跨表核对（数字对不对得上），自动找出差异并生成核对报告。
 
+## 当前能力
+
+- M1：读取 xlsx、CSV、JSON，识别 UTF-8、GBK 和 UTF-16。
+- M2：用 YAML 指定两张表、关联键和比较字段。
+- M3：按列配置绝对/相对容差和四舍五入。
+- M4：逐行读取 CSV 并运行基准统计。
+- M5：生成带明细、汇总和高亮的 Excel 报告，支持增量跳过。
+
+输入文件只在本机处理；示例数据均为虚构数据。
+
 ## 解决什么问题
 人工核对多张 Excel 报表耗时易错（差 2 万是算错、舍入还是漏单？），本工具自动定位"哪一行哪一列、差多少、大概率什么原因"。
 
@@ -15,6 +25,8 @@ Python 3.10+，在仓库目录执行：
 python -m pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 python -m pip install -e . -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
+
+开发环境还可安装 `requirements-dev.txt`，其中包含 pytest、ruff 和构建工具。
 
 ## 运行
 ```powershell
@@ -39,3 +51,20 @@ run 输出 JSON 差异，包括键、表名、源表行号（含表头）、字�
 字段可解析为有限数值时按 Decimal 比较，否则比较文本；当前无容差，关联键按原始文本精确匹配。
 bench 使用逐行 CSV 读取，输出行数、重复键数和耗时，不把整个文件载入内存。
 report 命令生成 Differences 和 Summary 工作表；使用 `--incremental` 可在输入哈希未变化时跳过。
+
+## 目录结构
+
+`recon/` 是源码，`tests/` 是单元和集成测试，`examples/` 是可运行的虚构输入，`design.md` 记录设计取舍，`docs/` 预留扩展文档位置。
+
+## 错误码
+
+成功返回 `0`；输入、规则、报告和基准命令的用户错误返回 `2`，并分别使用 `RECON_READ_ERROR`、`RECON_RULE_ERROR`、`RECON_REPORT_ERROR` 和 `RECON_BENCH_ERROR` 前缀。
+
+## 验证和构建
+
+```powershell
+python -m pytest -q
+python -m build
+```
+
+GitHub Actions 会在 push 和 pull request 时重复测试并构建 wheel。提交前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 和 [SECURITY.md](SECURITY.md)。
