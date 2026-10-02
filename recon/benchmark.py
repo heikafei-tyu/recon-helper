@@ -10,6 +10,9 @@ def stream_csv(path):
 
 
 def benchmark(path, key="id", check_duplicates=True, timeout=None):
+    if timeout is not None and timeout < 0:
+        raise ValueError("timeout 不能为负数")
+    path = Path(path)
     started = time.perf_counter()
     tracemalloc.start()
     rows = 0
@@ -27,4 +30,4 @@ def benchmark(path, key="id", check_duplicates=True, timeout=None):
             raise TimeoutError(f"超过 {timeout} 秒")
     _, peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
-    return {"file": str(path), "rows": rows, "duplicates": duplicates if check_duplicates else None, "seconds": round(time.perf_counter() - started, 6), "peak_memory_mb": round(peak / 1024 / 1024, 3), "duplicate_check": check_duplicates}
+    return {"file": str(path), "bytes": path.stat().st_size, "rows": rows, "duplicates": duplicates if check_duplicates else None, "seconds": round(time.perf_counter() - started, 6), "peak_memory_mb": round(peak / 1024 / 1024, 3), "duplicate_check": check_duplicates}

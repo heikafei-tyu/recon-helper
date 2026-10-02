@@ -12,6 +12,7 @@ def test_streaming_benchmark(tmp_path):
     assert sum(1 for _ in stream_csv(path)) == 1001
     result = benchmark(path)
     assert result["rows"] == 1001
+    assert result["bytes"] == path.stat().st_size
     assert result["duplicates"] == 1
     assert result["seconds"] >= 0
     assert result["peak_memory_mb"] >= 0
@@ -24,3 +25,11 @@ def test_benchmark_without_duplicate_check(tmp_path):
     result = benchmark(path, check_duplicates=False)
     assert result["duplicates"] is None
     assert result["duplicate_check"] is False
+
+
+def test_negative_timeout_rejected(tmp_path):
+    path = tmp_path / "data.csv"
+    path.write_text("id\n1\n", encoding="utf-8")
+    import pytest
+    with pytest.raises(ValueError, match="不能为负数"):
+        benchmark(path, timeout=-1)
