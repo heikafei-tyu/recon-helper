@@ -69,6 +69,8 @@ def run_rules(filename):
                         quantum = Decimal(1).scaleb(-places)
                         da, db = da.quantize(quantum, rounding=ROUND_HALF_UP), db.quantize(quantum, rounding=ROUND_HALF_UP)
                     delta_value = da - db
+                    if delta_value == 0:
+                        continue
                     absolute = Decimal(str(rules.get("absolute", "0")))
                     relative = Decimal(str(rules.get("relative", "0")))
                     threshold = max(absolute, max(abs(da), abs(db)) * relative)
