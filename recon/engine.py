@@ -48,6 +48,8 @@ def run_rules(filename):
                 raise ValueError(f"tolerance.{name}.{field} 不能为负数")
         if "round" in rules and (not isinstance(rules["round"], int) or not 0 <= rules["round"] <= 6):
             raise ValueError(f"tolerance.{name}.round 必须是 0 到 6 的整数")
+        if "priority" in rules and (not isinstance(rules["priority"], int) or rules["priority"] < 0):
+            raise ValueError(f"tolerance.{name}.priority 必须是非负整数")
     tables = [read_table(path.parent / config[side]) for side in ("left", "right")]
     indexes = []
     for table in tables:
@@ -92,14 +94,17 @@ def run_rules(filename):
                         continue
                     absolute = Decimal(str(rules.get("absolute", "0")))
                     relative = Decimal(str(rules.get("relative", "0")))
-                    threshold = max(absolute, max(abs(da), abs(db)) * relative)
+                    absolute_limit = absolute
+                    relative_limit = max(abs(da), abs(db)) * relative
+                    threshold = max(absolute_limit, relative_limit)
                     if abs(delta_value) <= threshold:
-                        differences.append({"key": key, "status": "within_tolerance", "column": column, "left_value": a, "right_value": b, "difference": str(delta_value), "tolerance": str(threshold)})
+                        method = "absolute" if absolute_limit >= relative_limit else "relative"
+                        differences.append({"key": display_key, "status": "within_tolerance", "column": column, "left_value": a, "right_value": b, "difference": str(delta_value), "tolerance": str(threshold), "tolerance_type": method, "rule_priority": rules.get("priority", 0)})
                         continue
                     if da == db:
                         continue
                     delta = str(delta_value)
-            except (InvalidOperation, TypeError):
+            except (InvalidOperation, TypeError, ValueError):
                 pass
             differences.append({"key": display_key, "status": "mismatch", "left_table": config["left"], "right_table": config["right"], "left_row": left[key][0], "right_row": right[key][0], "column": column, "left_value": a, "right_value": b, "difference": delta})
     return {"left_rows": len(left), "right_rows": len(right), "differences": differences}
