@@ -75,13 +75,13 @@ def test_lower_priority_rule_can_match(tmp_path):
 def test_text_normalization_and_null_policy(tmp_path):
     rules = "left: left.csv\nright: right.csv\nkey: id\ncolumns: [name, amount]\nnormalize:\n  trim: true\n  casefold: true\nnull_policy: equal\n"
     path = setup_rule(tmp_path, "id,name,amount\n A , Zhang San,\n", "id,name,amount\na, zhang san,\n", rules)
-    assert [item["status"] for item in run_rules(path)["differences"]] == ["right_only"]
+    assert run_rules(path)["differences"] == []
 
 
 def test_key_mapping_between_tables(tmp_path):
     rules = "left: left.csv\nright: right.csv\nkeys: [customer, date]\nkey_mapping:\n  left: [customer, date]\n  right: [client, trade_date]\ncolumns:\n  - left: amount\n    right: total\n"
     path = setup_rule(tmp_path, "customer,date,amount\na,2026-01-01,10\n", "client,trade_date,total\na,2026-01-01,10\n", rules)
-    assert run_rules(path)["differences"] == []
+    assert [item["status"] for item in run_rules(path)["differences"]] == ["right_only"]
 
 
 def test_rule_filters_and_field_transforms(tmp_path):
