@@ -7,7 +7,7 @@
 人工核对多张 Excel 报表耗时易错（差 2 万是算错、舍入还是漏单？），本工具自动定位"哪一行哪一列、差多少、大概率什么原因"。
 
 ## 当前状态
-M1 已实现读取层，M2 已实现 YAML 对账引擎，M3 已实现按列容差与舍入；M4–M5 为后续开发计划。当前不生成 Excel 对账报告。
+M1 已实现读取层，M2 已实现 YAML 对账引擎，M3 已实现按列容差与舍入，M4 已加入 CSV 流式基准；M5 为后续开发计划。当前不生成 Excel 对账报告。
 
 ## 安装
 Python 3.10+，在仓库目录执行：
@@ -24,6 +24,7 @@ python -m recon read examples/orders-utf16.csv
 python -m recon read examples/orders.json
 python -m pytest -q
 python -m recon run examples/rules.yaml
+python -m recon bench examples/orders.csv --key order_id
 ```
 读取首个 XLSX 工作表、带表头的 CSV、非空对象数组 JSON。
 列名须非空且唯一，每行字段须一致。标识符保留前导零，空值统一为 null。
@@ -36,4 +37,4 @@ examples 中所有数据为虚构示例，运行 `python examples/generate.py` �
 规则包含 left/right 文件路径（相对于规则文件）、唯一关联键 key 和比较字段列表 columns。
 run 输出 JSON 差异，包括键、表名、源表行号（含表头）、字段、两边值和数值差额（左减右）；缺失记录分别标为 left_only/right_only。
 字段可解析为有限数值时按 Decimal 比较，否则比较文本；当前无容差，关联键按原始文本精确匹配。
-后续计划依次实现按列容差、性能基准、Excel 报告与内容哈希增量核对。
+bench 使用逐行 CSV 读取，输出行数、重复键数和耗时，不把整个文件载入内存。后续计划是 Excel 报告与内容哈希增量核对。
