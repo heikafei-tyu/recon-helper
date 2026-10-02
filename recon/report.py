@@ -15,7 +15,7 @@ def _digest(path):
             h.update(block)
     return h.hexdigest()
 
-def create_report(rules_file, output, incremental=False):
+def create_report(rules_file, output, incremental=False, force=False):
     rules_path = Path(rules_file)
     output = Path(output)
     import yaml
@@ -23,6 +23,8 @@ def create_report(rules_file, output, incremental=False):
     sources = [rules_path, rules_path.parent / config["left"], rules_path.parent / config["right"]]
     manifest = {str(p): _digest(p) for p in sources if p.exists()}
     marker = output.with_suffix(output.suffix + ".manifest.json")
+    if output.exists() and not incremental and not force:
+        raise ValueError(f"报告已存在：{output}；如需覆盖请使用 --force")
     if incremental and output.exists() and marker.exists() and json.loads(marker.read_text()) == manifest:
         try:
             existing = load_workbook(output, read_only=True)
@@ -57,7 +59,7 @@ def create_report(rules_file, output, incremental=False):
     summary = book.create_sheet("Summary")
     summary.append(["metric", "value"])
     counts = {status: sum(r.get("status") == status for r in rows) for status in ("mismatch", "within_tolerance", "left_only", "right_only")}
-    summary_rows = [("left_rows", result["left_rows"]), ("right_rows", result["right_rows"]), ("differences", len(rows)), *counts.items()]
+    summary_rows = [("tool_version", "0.1.0"), ("rules_file", str(rules_path)), ("left_rows", result["left_rows"]), ("right_rows", result["right_rows"]), ("differences", len(rows)), *counts.items()]
     for key, value in summary_rows:
         summary.append([key, value])
     summary.freeze_panes = "A2"

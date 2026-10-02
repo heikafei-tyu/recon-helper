@@ -30,6 +30,7 @@ def main(argv=None):
     report.add_argument("rules")
     report.add_argument("--out", default="output/reconciliation.xlsx")
     report.add_argument("--incremental", action="store_true")
+    report.add_argument("--force", action="store_true")
     args = parser.parse_args(argv)
     try:
         if args.command == "validate":
@@ -40,7 +41,7 @@ def main(argv=None):
         elif args.command == "bench":
             result = benchmark(args.file, args.key, not args.no_duplicate_check, args.timeout)
         elif args.command == "report":
-            result = create_report(args.rules, args.out, args.incremental)
+            result = create_report(args.rules, args.out, args.incremental, args.force)
         else:
             result = read_table(args.file, args.encoding, args.sheet_name, args.sheet_index).summary()
         print(json.dumps(result, ensure_ascii=False))
