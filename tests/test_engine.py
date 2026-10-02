@@ -48,7 +48,7 @@ def test_invalid_tolerance(tmp_path, tolerance):
 
 
 def test_tolerance_reason_and_priority(tmp_path):
-    rules = "left: left.csv\nright: right.csv\nkey: id\ncolumns: [amount]\ntolerance:\n  amount:\n    absolute: '0.10'\n    relative: '0.001'\n    priority: 5\n"
+    rules = "left: left.csv\nright: right.csv\nkey: id\ncolumns: [amount]\ntolerance:\n  amount:\n    absolute: '0.10'\n    relative: '0.0005'\n    priority: 5\n"
     path = setup_rule(tmp_path, "id,amount\na,100.00\n", "id,amount\na,100.05\n", rules)
     item = run_rules(path)["differences"][0]
     assert item["status"] == "within_tolerance"
