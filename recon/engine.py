@@ -68,8 +68,9 @@ def run_rules(filename):
     left, right = indexes
     differences = []
     for key in sorted(left.keys() | right.keys()):
+        display_key = key[0] if len(key) == 1 else list(key)
         if key not in left or key not in right:
-            differences.append({"key": key, "status": "left_only" if key in left else "right_only", "left_row": left[key][0] if key in left else None, "right_row": right[key][0] if key in right else None})
+            differences.append({"key": display_key, "status": "left_only" if key in left else "right_only", "left_row": left[key][0] if key in left else None, "right_row": right[key][0] if key in right else None})
             continue
         for left_column, right_column in mappings:
             column = left_column
@@ -100,5 +101,5 @@ def run_rules(filename):
                     delta = str(delta_value)
             except (InvalidOperation, TypeError):
                 pass
-            differences.append({"key": key, "status": "mismatch", "left_table": config["left"], "right_table": config["right"], "left_row": left[key][0], "right_row": right[key][0], "column": column, "left_value": a, "right_value": b, "difference": delta})
+            differences.append({"key": display_key, "status": "mismatch", "left_table": config["left"], "right_table": config["right"], "left_row": left[key][0], "right_row": right[key][0], "column": column, "left_value": a, "right_value": b, "difference": delta})
     return {"left_rows": len(left), "right_rows": len(right), "differences": differences}
