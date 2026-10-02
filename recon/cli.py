@@ -6,6 +6,7 @@ from zipfile import BadZipFile
 from .readers import read_table
 from .engine import run_rules
 from .benchmark import benchmark
+from .report import create_report
 
 
 def main(argv=None):
@@ -19,12 +20,18 @@ def main(argv=None):
     bench = commands.add_parser("bench", help="流式统计 CSV 性能")
     bench.add_argument("file", nargs="?", default="examples/orders.csv")
     bench.add_argument("--key", default="id")
+    report = commands.add_parser("report", help="生成 Excel 差异报告")
+    report.add_argument("rules")
+    report.add_argument("--out", default="output/reconciliation.xlsx")
+    report.add_argument("--incremental", action="store_true")
     args = parser.parse_args(argv)
     try:
         if args.command == "run":
             result = run_rules(args.rules)
         elif args.command == "bench":
             result = benchmark(args.file, args.key)
+        elif args.command == "report":
+            result = create_report(args.rules, args.out, args.incremental)
         else:
             result = read_table(args.file, args.encoding).summary()
         print(json.dumps(result, ensure_ascii=False))
