@@ -4,3 +4,7 @@ key: order_id
 columns:
   - customer
   - amount
+tolerance:
+  amount:
+    absolute: "0.01"
+    round: 2

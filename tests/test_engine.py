@@ -25,6 +25,13 @@ def test_equivalent_numbers_and_missing_rows(tmp_path):
     assert [d["status"] for d in run_rules(path)["differences"]] == ["left_only", "right_only"]
 
 
+def test_column_tolerance_and_rounding(tmp_path):
+    rules = "left: left.csv\nright: right.csv\nkey: id\ncolumns: [amount]\ntolerance:\n  amount:\n    absolute: '0.01'\n    round: 2\n"
+    path = setup_rule(tmp_path, "id,amount\na,10.00\nb,10.00\nc,10.00\n", "id,amount\na,10.01\nb,10.02\nc,11.00\n", rules)
+    results = run_rules(path)["differences"]
+    assert [item["status"] for item in results] == ["within_tolerance", "mismatch"]
+
+
 @pytest.mark.parametrize("left", ["id,amount\na,1\na,2\n", "id,amount\n,1\n", "id,other\na,1\n"])
 def test_invalid_input(tmp_path, left):
     path = setup_rule(tmp_path, left, "id,amount\na,1\n")
