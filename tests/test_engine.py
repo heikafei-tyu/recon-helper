@@ -78,6 +78,12 @@ def test_text_normalization_and_null_policy(tmp_path):
     assert run_rules(path)["differences"] == []
 
 
+def test_key_mapping_between_tables(tmp_path):
+    rules = "left: left.csv\nright: right.csv\nkeys: [customer, date]\nkey_mapping:\n  left: [customer, date]\n  right: [client, trade_date]\ncolumns:\n  - left: amount\n    right: total\n"
+    path = setup_rule(tmp_path, "customer,date,amount\na,2026-01-01,10\n", "client,trade_date,total\na,2026-01-01,10\n", rules)
+    assert run_rules(path)["differences"] == []
+
+
 def test_composite_key_and_field_mapping(tmp_path):
     rules = "left: left.csv\nright: right.csv\nkeys: [customer, date]\ncolumns:\n  - left: amount\n    right: total\n"
     path = setup_rule(tmp_path, "customer,date,amount\na,2026-01-01,10\n", "customer,date,total\na,2026-01-01,12\n", rules)

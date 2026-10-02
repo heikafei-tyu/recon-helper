@@ -23,6 +23,11 @@ def run_rules(filename):
     keys = config.get("keys", [config["key"]] if isinstance(config.get("key"), str) else None)
     if not isinstance(keys, list) or not keys or not all(isinstance(k, str) and k for k in keys):
         raise ValueError("key 或 keys 必须是非空字段名")
+    key_mapping = config.get("key_mapping", {}) or {}
+    left_keys = key_mapping.get("left", keys)
+    right_keys = key_mapping.get("right", keys)
+    if not all(isinstance(names, list) and len(names) == len(keys) and all(isinstance(name, str) and name for name in names) for names in (left_keys, right_keys)):
+        raise ValueError("key_mapping.left/right 必须与 keys 等长的字段列表")
     columns = config["columns"]
     if not isinstance(columns, list) or not columns:
         raise ValueError("columns 必须是非空字段列表")
@@ -77,12 +82,12 @@ def run_rules(filename):
     tables = [read_table(path.parent / config[side]) for side in ("left", "right")]
     indexes = []
     for table in tables:
-        required = list(keys) if table is tables[0] else [pair[1] for pair in mappings]
-        required += [pair[0] for pair in mappings] if table is tables[0] else []
+        table_keys = left_keys if table is tables[0] else right_keys
+        required = list(table_keys) + ([pair[0] for pair in mappings] if table is tables[0] else [pair[1] for pair in mappings])
         for column in required:
             if column not in table.columns:
                 raise ValueError(f"输入缺少字段 {column}")
-        key_columns = keys if table is tables[0] else [keys[i] for i in range(len(keys))]
+        key_columns = table_keys
         key_indexes = [table.columns.index(column) for column in key_columns]
         index = {}
         for number, row in enumerate(table.rows, 2):
