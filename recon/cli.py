@@ -37,5 +37,6 @@ def main(argv=None):
         print(json.dumps(result, ensure_ascii=False))
         return 0
     except (ValueError, OSError, BadZipFile) as exc:
-        print(f"RECON_READ_ERROR: {exc}", file=sys.stderr)
+        code = "RECON_READ_ERROR" if args.command == "read" else "RECON_RULE_ERROR" if args.command == "run" else "RECON_REPORT_ERROR" if args.command == "report" else "RECON_BENCH_ERROR"
+        print(f"{code}: {exc}", file=sys.stderr)
         return 2
