@@ -38,6 +38,7 @@ python -m recon read examples/orders.json
 python -m pytest -q
 python -m recon run examples/rules.yaml
 python -m recon bench examples/orders.csv --key order_id
+python -m recon bench examples/orders.csv --key order_id --progress
 python -m recon validate examples/rules.yaml
 python -m recon report examples/rules.yaml --out output/reconciliation.xlsx
 python -m recon report examples/rules.yaml --out output/reconciliation.xlsx --incremental

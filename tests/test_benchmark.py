@@ -33,3 +33,10 @@ def test_negative_timeout_rejected(tmp_path):
     import pytest
     with pytest.raises(ValueError, match="不能为负数"):
         benchmark(path, timeout=-1)
+
+
+def test_progress_output(tmp_path, capsys):
+    path = tmp_path / "data.csv"
+    path.write_text("id\n" + "\n".join(str(i) for i in range(10000)) + "\n", encoding="utf-8")
+    benchmark(path, progress=True)
+    assert "processed_rows=10000" in capsys.readouterr().out

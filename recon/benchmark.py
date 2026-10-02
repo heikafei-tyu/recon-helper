@@ -9,7 +9,7 @@ def stream_csv(path):
         yield from csv.DictReader(stream)
 
 
-def benchmark(path, key="id", check_duplicates=True, timeout=None):
+def benchmark(path, key="id", check_duplicates=True, timeout=None, progress=False):
     if timeout is not None and timeout < 0:
         raise ValueError("timeout 不能为负数")
     path = Path(path)
@@ -20,6 +20,8 @@ def benchmark(path, key="id", check_duplicates=True, timeout=None):
     duplicates = 0
     for row in stream_csv(path):
         rows += 1
+        if progress and rows % 10000 == 0:
+            print(f"processed_rows={rows}")
         value = row.get(key)
         if check_duplicates and value in seen:
             duplicates += 1

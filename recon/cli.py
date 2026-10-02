@@ -26,6 +26,7 @@ def main(argv=None):
     bench.add_argument("--key", default="id")
     bench.add_argument("--no-duplicate-check", action="store_true")
     bench.add_argument("--timeout", type=float)
+    bench.add_argument("--progress", action="store_true")
     report = commands.add_parser("report", help="生成 Excel 差异报告")
     report.add_argument("rules")
     report.add_argument("--out", default="output/reconciliation.xlsx")
@@ -39,7 +40,7 @@ def main(argv=None):
         elif args.command == "run":
             result = run_rules(args.rules)
         elif args.command == "bench":
-            result = benchmark(args.file, args.key, not args.no_duplicate_check, args.timeout)
+            result = benchmark(args.file, args.key, not args.no_duplicate_check, args.timeout, args.progress)
         elif args.command == "report":
             result = create_report(args.rules, args.out, args.incremental, args.force)
         else:
