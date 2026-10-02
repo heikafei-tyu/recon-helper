@@ -40,16 +40,23 @@ def run_rules(filename):
     default_tol = tolerance.get("default", {}) or {}
     if not isinstance(default_tol, dict):
         raise ValueError("tolerance.default 必须是对象")
-    for name, rules in [("default", default_tol), *[(str(k), v) for k, v in tolerance.items() if k != "default"]]:
-        if not isinstance(rules, dict):
-            raise ValueError(f"tolerance.{name} 必须是对象")
-        for field in ("absolute", "relative"):
-            if field in rules and Decimal(str(rules[field])) < 0:
-                raise ValueError(f"tolerance.{name}.{field} 不能为负数")
-        if "round" in rules and (not isinstance(rules["round"], int) or not 0 <= rules["round"] <= 6):
-            raise ValueError(f"tolerance.{name}.round 必须是 0 到 6 的整数")
-        if "priority" in rules and (not isinstance(rules["priority"], int) or rules["priority"] < 0):
-            raise ValueError(f"tolerance.{name}.priority 必须是非负整数")
+    for name, configured in [("default", default_tol), *[(str(k), v) for k, v in tolerance.items() if k != "default"]]:
+        rule_list = configured if isinstance(configured, list) else [configured]
+        if not rule_list or not all(isinstance(r, dict) for r in rule_list):
+            raise ValueError(f"tolerance.{name} 必须是对象或对象列表")
+        for rules in rule_list:
+            for field in ("absolute", "relative"):
+                if field in rules:
+                    try:
+                        value = Decimal(str(rules[field]))
+                    except InvalidOperation as exc:
+                        raise ValueError(f"tolerance.{name}.{field} 必须是数字") from exc
+                    if not value.is_finite() or value < 0:
+                        raise ValueError(f"tolerance.{name}.{field} 必须是非负有限数字")
+            if "round" in rules and (not isinstance(rules["round"], int) or not 0 <= rules["round"] <= 6):
+                raise ValueError(f"tolerance.{name}.round 必须是 0 到 6 的整数")
+            if "priority" in rules and (not isinstance(rules["priority"], int) or rules["priority"] < 0):
+                raise ValueError(f"tolerance.{name}.priority 必须是非负整数")
     tables = [read_table(path.parent / config[side]) for side in ("left", "right")]
     indexes = []
     for table in tables:
@@ -83,8 +90,11 @@ def run_rules(filename):
             try:
                 da, db = Decimal(a), Decimal(b)
                 if da.is_finite() and db.is_finite():
-                    rules = dict(default_tol)
-                    rules.update(tolerance.get(column, {}) or {})
+                    configured = tolerance.get(column, {}) or {}
+                    candidates = configured if isinstance(configured, list) else [configured]
+                    candidates = [dict(default_tol, **candidate) for candidate in candidates]
+                    candidates.sort(key=lambda item: item.get("priority", 0), reverse=True)
+                    rules = candidates[0] if candidates else {}
                     if "round" in rules:
                         places = int(rules["round"])
                         quantum = Decimal(1).scaleb(-places)
@@ -99,7 +109,7 @@ def run_rules(filename):
                     threshold = max(absolute_limit, relative_limit)
                     if abs(delta_value) <= threshold:
                         method = "absolute" if absolute_limit >= relative_limit else "relative"
-                        differences.append({"key": display_key, "status": "within_tolerance", "column": column, "left_value": a, "right_value": b, "difference": str(delta_value), "tolerance": str(threshold), "tolerance_type": method, "rule_priority": rules.get("priority", 0)})
+                        differences.append({"key": display_key, "status": "within_tolerance", "column": column, "left_value": a, "right_value": b, "difference": str(delta_value), "tolerance": str(threshold), "tolerance_type": method, "tolerance_rule": rules.get("name", column), "relative_base": str(max(abs(da), abs(db))), "rule_priority": rules.get("priority", 0)})
                         continue
                     if da == db:
                         continue
