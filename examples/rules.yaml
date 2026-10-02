@@ -1,0 +1,6 @@
+left: orders.csv
+right: bank.csv
+key: order_id
+columns:
+  - customer
+  - amount
