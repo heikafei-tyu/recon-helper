@@ -19,6 +19,8 @@ def main(argv=None):
     read.add_argument("--sheet-index", type=int, default=0)
     run = commands.add_parser("run", help="按 YAML 规则输出对账差异")
     run.add_argument("rules")
+    validate = commands.add_parser("validate", help="预检查规则和输入字段")
+    validate.add_argument("rules")
     bench = commands.add_parser("bench", help="流式统计 CSV 性能")
     bench.add_argument("file", nargs="?", default="examples/orders.csv")
     bench.add_argument("--key", default="id")
@@ -28,7 +30,10 @@ def main(argv=None):
     report.add_argument("--incremental", action="store_true")
     args = parser.parse_args(argv)
     try:
-        if args.command == "run":
+        if args.command == "validate":
+            run_rules(args.rules)
+            result = {"valid": True, "rules": args.rules}
+        elif args.command == "run":
             result = run_rules(args.rules)
         elif args.command == "bench":
             result = benchmark(args.file, args.key)

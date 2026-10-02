@@ -16,15 +16,21 @@ def run_rules(filename):
         raise ValueError(f"YAML 格式错误：{exc}") from exc
     if not isinstance(config, dict):
         raise ValueError("规则必须是对象")
-    for field in ("left", "right", "key", "columns"):
+    for field in ("left", "right", "columns"):
         if field not in config:
             raise ValueError(f"规则缺少 {field}")
-    if not all(isinstance(config[f], str) and config[f] for f in ("left", "right", "key")):
-        raise ValueError("left/right/key 必须是非空字符串")
+    if not all(isinstance(config[f], str) and config[f] for f in ("left", "right")):
+        raise ValueError("left/right 必须是非空字符串")
+    keys = config.get("keys", [config["key"]] if isinstance(config.get("key"), str) else None)
+    if not isinstance(keys, list) or not keys or not all(isinstance(k, str) and k for k in keys):
+        raise ValueError("key 或 keys 必须是非空字段名")
     columns = config["columns"]
-    if not isinstance(columns, list) or not columns or not all(isinstance(c, str) for c in columns):
+    if not isinstance(columns, list) or not columns:
         raise ValueError("columns 必须是非空字段列表")
-    if len(set(columns)) != len(columns):
+    mappings = [(c, c) if isinstance(c, str) else (c.get("left"), c.get("right")) for c in columns]
+    if any(not left_name or not right_name for left_name, right_name in mappings):
+        raise ValueError("比较字段必须是字符串或包含 left/right 的对象")
+    if len({pair for pair in mappings}) != len(mappings):
         raise ValueError("比较字段不能重复")
     tolerance = config.get("tolerance", {})
     if tolerance is None:
@@ -45,13 +51,16 @@ def run_rules(filename):
     tables = [read_table(path.parent / config[side]) for side in ("left", "right")]
     indexes = []
     for table in tables:
-        for column in [config["key"], *columns]:
+        required = keys if table is tables[0] else [pair[1] for pair in mappings]
+        required += [pair[0] for pair in mappings] if table is tables[0] else []
+        for column in required:
             if column not in table.columns:
                 raise ValueError(f"输入缺少字段 {column}")
-        key_index = table.columns.index(config["key"])
+        key_columns = keys if table is tables[0] else [keys[i] for i in range(len(keys))]
+        key_indexes = [table.columns.index(column) for column in key_columns]
         index = {}
         for number, row in enumerate(table.rows, 2):
-            key = row[key_index]
+            key = tuple(row[index] for index in key_indexes)
             if key is None or not key.strip() or key in index:
                 raise ValueError(f"第 {number} 行关联键为空或重复")
             index[key] = (number, dict(zip(table.columns, row)))
@@ -62,8 +71,9 @@ def run_rules(filename):
         if key not in left or key not in right:
             differences.append({"key": key, "status": "left_only" if key in left else "right_only", "left_row": left[key][0] if key in left else None, "right_row": right[key][0] if key in right else None})
             continue
-        for column in columns:
-            a, b = left[key][1][column], right[key][1][column]
+        for left_column, right_column in mappings:
+            column = left_column
+            a, b = left[key][1][left_column], right[key][1][right_column]
             if a == b:
                 continue
             delta = None

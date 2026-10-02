@@ -47,6 +47,15 @@ def test_invalid_tolerance(tmp_path, tolerance):
         run_rules(path)
 
 
+def test_composite_key_and_field_mapping(tmp_path):
+    rules = "left: left.csv\nright: right.csv\nkeys: [customer, date]\ncolumns:\n  - left: amount\n    right: total\n"
+    path = setup_rule(tmp_path, "customer,date,amount\na,2026-01-01,10\n", "customer,date,total\na,2026-01-01,12\n", rules)
+    item = run_rules(path)["differences"][0]
+    assert item["key"] == ["a", "2026-01-01"] or item["key"] == ("a", "2026-01-01")
+    assert item["left_value"] == "10"
+    assert item["right_value"] == "12"
+
+
 @pytest.mark.parametrize("rules", ["[]", "left: left.csv", "left: left.csv\nright: right.csv\nkey: id\ncolumns: [amount, amount]", "left: [x]\nright: right.csv\nkey: id\ncolumns: [amount]"])
 def test_invalid_rules(tmp_path, rules):
     path = setup_rule(tmp_path, "id,amount\na,1\n", "id,amount\na,1\n", rules)
