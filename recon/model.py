@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation
 
 from .errors import ReadError
+from .readers.type_inference import infer
 
 
 @dataclass(frozen=True)
@@ -32,11 +32,5 @@ class Table:
         types = {}
         for index, column in enumerate(self.columns):
             values = [row[index] for row in self.rows if row[index] is not None]
-            numeric = bool(values)
-            for value in values:
-                try:
-                    numeric = numeric and Decimal(value).is_finite()
-                except InvalidOperation:
-                    numeric = False
-            types[column] = "number" if numeric else "text" if values else "empty"
+            types[column] = infer(values)
         return {"row_count": len(self.rows), "columns": list(self.columns), "types": types}
