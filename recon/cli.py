@@ -27,6 +27,7 @@ def main(argv=None):
     bench.add_argument("--no-duplicate-check", action="store_true")
     bench.add_argument("--timeout", type=float)
     bench.add_argument("--progress", action="store_true")
+    bench.add_argument("--json-out")
     report = commands.add_parser("report", help="生成 Excel 差异报告")
     report.add_argument("rules")
     report.add_argument("--out", default="output/reconciliation.xlsx")
@@ -41,6 +42,10 @@ def main(argv=None):
             result = run_rules(args.rules)
         elif args.command == "bench":
             result = benchmark(args.file, args.key, not args.no_duplicate_check, args.timeout, args.progress)
+            if args.json_out:
+                from pathlib import Path
+                Path(args.json_out).parent.mkdir(parents=True, exist_ok=True)
+                Path(args.json_out).write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
         elif args.command == "report":
             result = create_report(args.rules, args.out, args.incremental, args.force)
         else:
