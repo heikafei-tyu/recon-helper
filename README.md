@@ -17,7 +17,7 @@
 人工核对多张 Excel 报表耗时易错（差 2 万是算错、舍入还是漏单？），本工具自动定位"哪一行哪一列、差多少、大概率什么原因"。
 
 ## 当前状态
-M1 已实现读取层，M2 已实现 YAML 对账引擎，M3 已实现按列容差与舍入，M4 已加入 CSV 流式基准；M5 为后续开发计划。当前不生成 Excel 对账报告。
+M0–M5 均已实现：读取、规则、容差、性能基准和 Excel 报告。当前版本包含复合键、字段映射、规则预检查、优先级容差和增量报告。
 
 ## 安装
 Python 3.10+，在仓库目录执行：
@@ -37,8 +37,11 @@ python -m recon read examples/orders.json
 python -m pytest -q
 python -m recon run examples/rules.yaml
 python -m recon bench examples/orders.csv --key order_id
+python -m recon validate examples/rules.yaml
+python -m recon report examples/rules.yaml --out output/reconciliation.xlsx
+python -m recon report examples/rules.yaml --out output/reconciliation.xlsx --incremental
 ```
-读取首个 XLSX 工作表、带表头的 CSV、非空对象数组 JSON。
+读取首个 XLSX 工作表、带表头的 CSV/TSV、非空对象数组 JSON；可用 `--sheet-name` 或 `--sheet-index` 选择 XLSX 工作表。
 列名须非空且唯一，每行字段须一致。标识符保留前导零，空值统一为 null。
 编码自动支持 UTF-8、GBK、带 BOM 的 UTF-16；存在歧义时用 `--encoding` 指定。
 XLSX 公式会报错，须先转换为已核验的数值。类型推断仅用于摘要，不改变单元格文本。
@@ -48,7 +51,7 @@ XLSX 公式会报错，须先转换为已核验的数值。类型推断仅用于
 examples 中所有数据为虚构示例，运行 `python examples/generate.py` 可重新生成。
 规则包含 left/right 文件路径（相对于规则文件）、唯一关联键 key 和比较字段列表 columns。
 run 输出 JSON 差异，包括键、表名、源表行号（含表头）、字段、两边值和数值差额（左减右）；缺失记录分别标为 left_only/right_only。
-字段可解析为有限数值时按 Decimal 比较，否则比较文本；当前无容差，关联键按原始文本精确匹配。
+字段可解析为有限数值时按 Decimal 比较，否则比较文本；容差规则按优先级逐条尝试，关联键按原始文本精确匹配。
 bench 使用逐行 CSV 读取，输出行数、重复键数和耗时，不把整个文件载入内存。
 report 命令生成 Differences 和 Summary 工作表；使用 `--incremental` 可在输入哈希未变化时跳过。
 
