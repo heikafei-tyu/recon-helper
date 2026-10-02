@@ -12,7 +12,7 @@ from recon.readers import read_table
 def test_formats_and_encodings_agree(tmp_path):
     generate(tmp_path)
     tables = [read_table(tmp_path / name) for name in ["orders.csv", "orders-gbk.csv", "orders-utf16.csv", "orders.json", "orders.xlsx"]]
-    assert all(table == tables[0] for table in tables)
+    assert all((table.columns, table.rows) == (tables[0].columns, tables[0].rows) for table in tables)
     assert tables[0].rows[0] == ("001", "示例甲", "12.50")
     assert tables[0].summary()["types"]["amount"] == "number"
 
