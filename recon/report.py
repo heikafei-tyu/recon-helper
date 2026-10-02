@@ -31,7 +31,7 @@ def create_report(rules_file, output, incremental=False):
     sheet.append(columns)
     red = PatternFill("solid", fgColor="FFC7CE")
     for row in rows:
-        sheet.append([row.get(k) for k in columns])
+        sheet.append([" / ".join(row[k]) if isinstance(row.get(k), tuple) else row.get(k) for k in columns])
         if row.get("status") == "mismatch":
             for cell in sheet[sheet.max_row]: cell.fill = red
     summary = book.create_sheet("Summary")

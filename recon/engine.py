@@ -51,7 +51,7 @@ def run_rules(filename):
     tables = [read_table(path.parent / config[side]) for side in ("left", "right")]
     indexes = []
     for table in tables:
-        required = keys if table is tables[0] else [pair[1] for pair in mappings]
+            required = list(keys) if table is tables[0] else [pair[1] for pair in mappings]
         required += [pair[0] for pair in mappings] if table is tables[0] else []
         for column in required:
             if column not in table.columns:
