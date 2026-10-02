@@ -37,4 +37,5 @@ examples 中所有数据为虚构示例，运行 `python examples/generate.py` �
 规则包含 left/right 文件路径（相对于规则文件）、唯一关联键 key 和比较字段列表 columns。
 run 输出 JSON 差异，包括键、表名、源表行号（含表头）、字段、两边值和数值差额（左减右）；缺失记录分别标为 left_only/right_only。
 字段可解析为有限数值时按 Decimal 比较，否则比较文本；当前无容差，关联键按原始文本精确匹配。
-bench 使用逐行 CSV 读取，输出行数、重复键数和耗时，不把整个文件载入内存。后续计划是 Excel 报告与内容哈希增量核对。
+bench 使用逐行 CSV 读取，输出行数、重复键数和耗时，不把整个文件载入内存。
+report 命令生成 Differences 和 Summary 工作表；使用 `--incremental` 可在输入哈希未变化时跳过。
