@@ -14,3 +14,13 @@ def test_streaming_benchmark(tmp_path):
     assert result["rows"] == 1001
     assert result["duplicates"] == 1
     assert result["seconds"] >= 0
+    assert result["peak_memory_mb"] >= 0
+    assert result["duplicate_check"] is True
+
+
+def test_benchmark_without_duplicate_check(tmp_path):
+    path = tmp_path / "data.csv"
+    path.write_text("id\n1\n1\n", encoding="utf-8")
+    result = benchmark(path, check_duplicates=False)
+    assert result["duplicates"] is None
+    assert result["duplicate_check"] is False

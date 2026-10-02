@@ -24,6 +24,8 @@ def main(argv=None):
     bench = commands.add_parser("bench", help="流式统计 CSV 性能")
     bench.add_argument("file", nargs="?", default="examples/orders.csv")
     bench.add_argument("--key", default="id")
+    bench.add_argument("--no-duplicate-check", action="store_true")
+    bench.add_argument("--timeout", type=float)
     report = commands.add_parser("report", help="生成 Excel 差异报告")
     report.add_argument("rules")
     report.add_argument("--out", default="output/reconciliation.xlsx")
@@ -36,13 +38,16 @@ def main(argv=None):
         elif args.command == "run":
             result = run_rules(args.rules)
         elif args.command == "bench":
-            result = benchmark(args.file, args.key)
+            result = benchmark(args.file, args.key, not args.no_duplicate_check, args.timeout)
         elif args.command == "report":
             result = create_report(args.rules, args.out, args.incremental)
         else:
             result = read_table(args.file, args.encoding, args.sheet_name, args.sheet_index).summary()
         print(json.dumps(result, ensure_ascii=False))
         return 0
+    except TimeoutError as exc:
+        print(f"RECON_TIMEOUT: {exc}", file=sys.stderr)
+        return 2
     except (ValueError, OSError, BadZipFile) as exc:
         code = "RECON_READ_ERROR" if args.command == "read" else "RECON_RULE_ERROR" if args.command == "run" else "RECON_REPORT_ERROR" if args.command == "report" else "RECON_BENCH_ERROR"
         print(f"{code}: {exc}", file=sys.stderr)
