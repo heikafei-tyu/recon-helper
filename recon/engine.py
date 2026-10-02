@@ -61,7 +61,7 @@ def run_rules(filename):
         index = {}
         for number, row in enumerate(table.rows, 2):
             key = tuple(row[index] for index in key_indexes)
-            if key is None or not key.strip() or key in index:
+            if any(value is None or not str(value).strip() for value in key) or key in index:
                 raise ValueError(f"第 {number} 行关联键为空或重复")
             index[key] = (number, dict(zip(table.columns, row)))
         indexes.append(index)
