@@ -9,6 +9,19 @@ from openpyxl.styles import Font, PatternFill
 from .engine import run_rules
 
 
+def create_html_report(rules_file, output):
+    result = run_rules(rules_file)
+    rows = result["differences"]
+    columns = ["key", "status", "column", "left_value", "right_value", "difference"]
+    header = "".join(f"<th>{column}</th>" for column in columns)
+    body = "".join("<tr>" + "".join(f"<td>{str(row.get(column, '')).replace('&', '&amp;').replace('<', '&lt;')}</td>" for column in columns) + "</tr>" for row in rows)
+    html = f"<!doctype html><meta charset='utf-8'><title>recon-helper report</title><table><thead><tr>{header}</tr></thead><tbody>{body}</tbody></table>"
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(html, encoding="utf-8")
+    return {"output": str(output), "differences": len(rows)}
+
+
 def _digest(path):
     h = hashlib.sha256()
     with Path(path).open("rb") as stream:

@@ -33,6 +33,7 @@ def main(argv=None):
     report.add_argument("--out", default="output/reconciliation.xlsx")
     report.add_argument("--incremental", action="store_true")
     report.add_argument("--force", action="store_true")
+    report.add_argument("--html")
     args = parser.parse_args(argv)
     try:
         if args.command == "validate":
@@ -47,7 +48,11 @@ def main(argv=None):
                 Path(args.json_out).parent.mkdir(parents=True, exist_ok=True)
                 Path(args.json_out).write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
         elif args.command == "report":
-            result = create_report(args.rules, args.out, args.incremental, args.force)
+            if args.html:
+                from .report import create_html_report
+                result = create_html_report(args.rules, args.html)
+            else:
+                result = create_report(args.rules, args.out, args.incremental, args.force)
         else:
             result = read_table(args.file, args.encoding, args.sheet_name, args.sheet_index).summary()
         print(json.dumps(result, ensure_ascii=False))

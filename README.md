@@ -41,6 +41,7 @@ python -m recon bench examples/orders.csv --key order_id
 python -m recon bench examples/orders.csv --key order_id --progress
 python -m recon validate examples/rules.yaml
 python -m recon report examples/rules.yaml --out output/reconciliation.xlsx
+python -m recon report examples/rules.yaml --html output/reconciliation.html
 python -m recon report examples/rules.yaml --out output/reconciliation.xlsx --incremental
 ```
 读取首个 XLSX 工作表、带表头的 CSV/TSV、非空对象数组 JSON；可用 `--sheet-name` 或 `--sheet-index` 选择 XLSX 工作表。
