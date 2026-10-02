@@ -2,6 +2,7 @@ import argparse
 import csv
 from pathlib import Path
 
+
 def generate(path, rows):
     with Path(path).open("w", encoding="utf-8", newline="") as stream:
         writer = csv.writer(stream)

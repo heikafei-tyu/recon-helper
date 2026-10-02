@@ -13,7 +13,8 @@ def test_report_and_incremental_skip(tmp_path):
     book = load_workbook(output)
     assert book.sheetnames == ["Differences", "Summary"]
     assert book["Differences"].freeze_panes == "A2"
-    assert book["Summary"]["A6"].value == "within_tolerance" or book["Summary"]["A6"].value == "left_only"
+    assert book["Summary"]["A1"].value == "metric"
+    assert book["Summary"]["A2"].value == "tool_version"
     assert create_report(rules, output, incremental=True)["skipped"] is True
 
 def test_report_refuses_overwrite_without_force(tmp_path):
