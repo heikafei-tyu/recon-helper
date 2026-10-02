@@ -15,6 +15,9 @@ def test_report_and_incremental_skip(tmp_path):
     assert book["Differences"].freeze_panes == "A2"
     assert book["Summary"]["A1"].value == "metric"
     assert book["Summary"]["A2"].value == "tool_version"
+    metrics = {row[0].value: row[1].value for row in book["Summary"].iter_rows(min_row=2)}
+    assert metrics["run_at_utc"]
+    assert len(metrics["left_sha256"]) == 64
     assert create_report(rules, output, incremental=True)["skipped"] is True
 
 def test_report_refuses_overwrite_without_force(tmp_path):

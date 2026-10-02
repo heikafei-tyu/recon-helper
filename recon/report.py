@@ -1,5 +1,6 @@
 import hashlib
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 from openpyxl import Workbook, load_workbook
@@ -59,7 +60,7 @@ def create_report(rules_file, output, incremental=False, force=False):
     summary = book.create_sheet("Summary")
     summary.append(["metric", "value"])
     counts = {status: sum(r.get("status") == status for r in rows) for status in ("mismatch", "within_tolerance", "left_only", "right_only")}
-    summary_rows = [("tool_version", "0.1.0"), ("rules_file", str(rules_path)), ("left_rows", result["left_rows"]), ("right_rows", result["right_rows"]), ("differences", len(rows)), *counts.items()]
+    summary_rows = [("tool_version", "0.1.0"), ("run_at_utc", datetime.now(timezone.utc).isoformat()), ("rules_file", str(rules_path)), ("left_file", str(sources[1])), ("right_file", str(sources[2])), ("left_sha256", manifest.get(str(sources[1]))), ("right_sha256", manifest.get(str(sources[2]))), ("left_rows", result["left_rows"]), ("right_rows", result["right_rows"]), ("differences", len(rows)), *counts.items()]
     for key, value in summary_rows:
         summary.append([key, value])
     summary.freeze_panes = "A2"
