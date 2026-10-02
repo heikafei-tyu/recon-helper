@@ -34,6 +34,14 @@ def run_rules(filename):
     default_tol = tolerance.get("default", {}) or {}
     if not isinstance(default_tol, dict):
         raise ValueError("tolerance.default 必须是对象")
+    for name, rules in [("default", default_tol), *[(str(k), v) for k, v in tolerance.items() if k != "default"]]:
+        if not isinstance(rules, dict):
+            raise ValueError(f"tolerance.{name} 必须是对象")
+        for field in ("absolute", "relative"):
+            if field in rules and Decimal(str(rules[field])) < 0:
+                raise ValueError(f"tolerance.{name}.{field} 不能为负数")
+        if "round" in rules and (not isinstance(rules["round"], int) or not 0 <= rules["round"] <= 6):
+            raise ValueError(f"tolerance.{name}.round 必须是 0 到 6 的整数")
     tables = [read_table(path.parent / config[side]) for side in ("left", "right")]
     indexes = []
     for table in tables:

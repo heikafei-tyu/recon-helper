@@ -39,6 +39,14 @@ def test_invalid_input(tmp_path, left):
         run_rules(path)
 
 
+@pytest.mark.parametrize("tolerance", ["-1", "0.1", "{absolute: -1}", "{round: 9}"])
+def test_invalid_tolerance(tmp_path, tolerance):
+    rules = f"left: left.csv\nright: right.csv\nkey: id\ncolumns: [amount]\ntolerance:\n  amount: {tolerance}\n"
+    path = setup_rule(tmp_path, "id,amount\na,1\n", "id,amount\na,1\n", rules)
+    with pytest.raises(ValueError):
+        run_rules(path)
+
+
 @pytest.mark.parametrize("rules", ["[]", "left: left.csv", "left: left.csv\nright: right.csv\nkey: id\ncolumns: [amount, amount]", "left: [x]\nright: right.csv\nkey: id\ncolumns: [amount]"])
 def test_invalid_rules(tmp_path, rules):
     path = setup_rule(tmp_path, "id,amount\na,1\n", "id,amount\na,1\n", rules)
