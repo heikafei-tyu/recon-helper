@@ -4,7 +4,9 @@ from pathlib import Path
 
 
 def generate(path, rows):
-    with Path(path).open("w", encoding="utf-8", newline="") as stream:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8", newline="") as stream:
         writer = csv.writer(stream)
         writer.writerow(["id", "amount"])
         for index in range(rows):
