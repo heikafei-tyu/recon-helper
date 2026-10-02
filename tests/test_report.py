@@ -10,4 +10,6 @@ def test_report_and_incremental_skip(tmp_path):
     assert create_report(rules, output)["skipped"] is False
     book = load_workbook(output)
     assert book.sheetnames == ["Differences", "Summary"]
+    assert book["Differences"].freeze_panes == "A2"
+    assert book["Summary"]["A6"].value == "within_tolerance" or book["Summary"]["A6"].value == "left_only"
     assert create_report(rules, output, incremental=True)["skipped"] is True
