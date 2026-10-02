@@ -31,6 +31,24 @@ def run_rules(filename):
         raise ValueError("比较字段必须是字符串或包含 left/right 的对象")
     if len({pair for pair in mappings}) != len(mappings):
         raise ValueError("比较字段不能重复")
+    normalize = config.get("normalize", {}) or {}
+    if not isinstance(normalize, dict):
+        raise ValueError("normalize 必须是对象")
+    trim = bool(normalize.get("trim", False))
+    casefold = bool(normalize.get("casefold", False))
+    null_policy = config.get("null_policy", "different")
+    if null_policy not in ("equal", "different"):
+        raise ValueError("null_policy 必须是 equal 或 different")
+
+    def clean(value):
+        if value is None:
+            return None
+        value = str(value)
+        if trim:
+            value = value.strip()
+        if casefold:
+            value = value.casefold()
+        return value
     tolerance = config.get("tolerance", {})
     if tolerance is None:
         tolerance = {}
@@ -68,7 +86,7 @@ def run_rules(filename):
         key_indexes = [table.columns.index(column) for column in key_columns]
         index = {}
         for number, row in enumerate(table.rows, 2):
-            key = tuple(row[index] for index in key_indexes)
+            key = tuple(clean(row[index]) for index in key_indexes)
             if any(value is None or not str(value).strip() for value in key) or key in index:
                 raise ValueError(f"第 {number} 行关联键为空或重复")
             index[key] = (number, dict(zip(table.columns, row)))
@@ -82,7 +100,12 @@ def run_rules(filename):
             continue
         for left_column, right_column in mappings:
             column = left_column
-            a, b = left[key][1][left_column], right[key][1][right_column]
+            a, b = clean(left[key][1][left_column]), clean(right[key][1][right_column])
+            if a is None or b is None:
+                if a is None and b is None and null_policy == "equal":
+                    continue
+                differences.append({"key": display_key, "status": "mismatch", "column": column, "left_value": a, "right_value": b, "difference": None})
+                continue
             if a == b:
                 continue
             delta = None
