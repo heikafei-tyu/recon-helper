@@ -37,7 +37,9 @@ def _digest(path):
             h.update(block)
     return h.hexdigest()
 
-def create_report(rules_file, output, incremental=False, force=False):
+def create_report(rules_file, output, incremental=False, force=False, template="detailed"):
+    if template not in {"simple", "detailed", "management"}:
+        raise ValueError("未知报告模板：simple、detailed、management")
     rules_path = Path(rules_file)
     output = Path(output)
     import yaml
@@ -93,7 +95,7 @@ def create_report(rules_file, output, incremental=False, force=False):
 
     add_detail_sheet("Differences", rows)
     detail_names = []
-    for name in source_names:
+    for name in source_names if template != "simple" else []:
         if not name:
             continue
         title = Path(name).stem[:25] or "table"
@@ -114,9 +116,12 @@ def create_report(rules_file, output, incremental=False, force=False):
         chart_path = output.with_suffix(".summary.png")
         labels = list(counts); values = list(counts.values())
         figure, axis = plt.subplots(figsize=(5, 3)); axis.bar(labels, values, color="#4C78A8"); axis.set_title("差异分布"); figure.tight_layout(); figure.savefig(chart_path); plt.close(figure)
-        summary.add_image(XLImage(str(chart_path)), "D2")
+        if template != "simple":
+            summary.add_image(XLImage(str(chart_path)), "D2")
     except ImportError:
         pass
+    if template == "management":
+        summary.append(["建议", "优先处理缺失数据与超容差差异；复核输入指纹后再提交。"])
     summary.freeze_panes = "A2"
     output.parent.mkdir(parents=True, exist_ok=True)
     book.save(output)
