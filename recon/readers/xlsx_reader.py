@@ -4,7 +4,7 @@ from ..errors import ReadError
 from ..model import Table
 
 
-def read(path, encoding=None, sheet_name=None, sheet_index=0):
+def read(path, encoding=None, sheet_name=None, sheet_index=0, skip_rows=0):
     book = load_workbook(path, read_only=True, data_only=False)
     try:
         if sheet_name is not None:
@@ -22,6 +22,8 @@ def read(path, encoding=None, sheet_name=None, sheet_index=0):
                     raise ReadError("XLSX 包含公式，请先转为已核验的值")
                 yield [cell.value for cell in cells]
         rows = records()
+        for _ in range(skip_rows):
+            next(rows, None)
         header = next(rows, None)
         if header is None:
             raise ReadError("XLSX 工作表为空")
