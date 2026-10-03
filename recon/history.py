@@ -18,7 +18,8 @@ def save_snapshot(rules_file, result, directory="history"):
     source = data if isinstance(data, dict) else {}
     files = [rules_path]
     for key in ("left", "right"):
-        if source.get(key): files.append(rules_path.parent / source[key])
+        if source.get(key):
+            files.append(rules_path.parent / source[key])
     snapshot = {"created_at": datetime.now(timezone.utc).isoformat(), "rules": source, "files": {str(path): _digest(path) for path in files if path.exists()}, "summary": {"differences": len(result.get("differences", [])), "left_rows": result.get("left_rows", 0), "right_rows": result.get("right_rows", 0)}}
     target = Path(directory)
     target.mkdir(parents=True, exist_ok=True)

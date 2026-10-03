@@ -1,5 +1,7 @@
 import pytest
+
 from recon.scope import select_rows
+
 ROWS = [{"id": 1, "department": "A", "date": "2024-01-01"}, {"id": 2, "department": "B", "date": "2024-02-01"}]
 def test_scope_modes():
     assert len(select_rows(ROWS, {"first_n": 1})[0]) == 1

@@ -5,10 +5,10 @@ from zipfile import BadZipFile
 
 from .benchmark import benchmark, benchmark_generated
 from .engine import run_rules
+from .history import load_history
 from .profiles import list_profiles, show_profile, use_profile
 from .readers import read_table
 from .report import create_report
-from .history import load_history
 
 
 def main(argv=None):
