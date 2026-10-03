@@ -5,6 +5,7 @@ from pathlib import Path
 
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill
+from openpyxl.drawing.image import Image as XLImage
 
 from .engine import run_rules
 
@@ -100,6 +101,14 @@ def create_report(rules_file, output, incremental=False, force=False):
     summary_rows = [("tool_version", "0.1.0"), ("run_at_utc", datetime.now(timezone.utc).isoformat()), ("rules_file", str(rules_path)), ("left_file", str(sources[1]) if len(sources) > 1 else None), ("right_file", str(sources[2]) if len(sources) > 2 else None), ("left_sha256", manifest.get(str(sources[1])) if len(sources) > 1 else None), ("right_sha256", manifest.get(str(sources[2])) if len(sources) > 2 else None), ("left_rows", result.get("left_rows", 0)), ("right_rows", result.get("right_rows", 0)), ("differences", len(rows)), ("conclusion", "通过" if not rows else "存在差异"), *counts.items()]
     for key, value in summary_rows:
         summary.append([key, value])
+    try:
+        import matplotlib.pyplot as plt
+        chart_path = output.with_suffix(".summary.png")
+        labels = list(counts); values = list(counts.values())
+        figure, axis = plt.subplots(figsize=(5, 3)); axis.bar(labels, values, color="#4C78A8"); axis.set_title("差异分布"); figure.tight_layout(); figure.savefig(chart_path); plt.close(figure)
+        summary.add_image(XLImage(str(chart_path)), "D2")
+    except ImportError:
+        pass
     summary.freeze_panes = "A2"
     output.parent.mkdir(parents=True, exist_ok=True)
     book.save(output)
