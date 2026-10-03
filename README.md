@@ -61,6 +61,10 @@ checks:
 
 安装 FastAPI 后执行 `uvicorn recon.api:app --reload`；使用 `POST /reconcile` 核对文件，`GET /history` 查看历史，`GET /docs` 查看 Swagger。
 
+## Web 界面
+
+启动 `uvicorn recon.api:app --reload` 后打开 `http://127.0.0.1:8000/`。核对页可上传左右表和 YAML 规则并显示分级差异；历史页查看已保存的核对记录；报告页提供报告生成入口。结果和差异会写入本地 `recon_history.db`，无数据库时 `history` 命令自动回退到 `history/*.json`。
+
 ## FAQ
 
 - 中文乱码：`read --encoding gbk`。

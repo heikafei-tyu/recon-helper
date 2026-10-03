@@ -33,6 +33,11 @@ def list_history(directory="history"):
 
 
 def load_history(directory="history"):
+    db = Path(directory).parent / "recon_history.db" if Path(directory).name == "history" else Path(directory) / "recon_history.db"
+    if db.exists():
+        from .store import ResultStore
+        with ResultStore(db) as store:
+            return store.query()
     return [json.loads(path.read_text(encoding="utf-8")) for path in list_history(directory)]
 
 

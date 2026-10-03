@@ -7,6 +7,7 @@ from fastapi.responses import HTMLResponse, PlainTextResponse
 
 from .engine import run_rules
 from .history import load_history
+from .store import ResultStore
 
 app = FastAPI(title="recon-helper API", version="0.1.0")
 
@@ -57,7 +58,10 @@ async def reconcile(file: UploadFile = File(...), rules: str = Form(...)):
         config.setdefault("right", file.filename)
         rules_path = root / "rules.json"; rules_path.write_text(json.dumps(config), encoding="utf-8")
         try:
-            return run_rules(rules_path)
+            result = run_rules(rules_path)
+            with ResultStore() as store:
+                store.save(config, result, {file.filename: __import__("hashlib").sha256(data_path.read_bytes()).hexdigest()})
+            return result
         except (ValueError, OSError) as exc:
             raise HTTPException(status_code=422, detail={"code": "RECONCILE_ERROR", "message": str(exc)}) from exc
 
