@@ -4,6 +4,7 @@ import sys
 from zipfile import BadZipFile
 
 from .benchmark import benchmark, benchmark_generated
+from .config import load_config
 from .engine import run_rules
 from .history import compare_history, load_history
 from .init_wizard import run_wizard
@@ -39,6 +40,7 @@ def main(argv=None):
     report.add_argument("--incremental", action="store_true")
     report.add_argument("--force", action="store_true")
     report.add_argument("--html")
+    report.add_argument("--template", choices=["simple", "detailed", "management"], default="detailed")
     profile = commands.add_parser("profile", help="管理配置 Profile")
     profile_commands = profile.add_subparsers(dest="profile_command", required=True)
     profile_commands.add_parser("list")
@@ -52,10 +54,15 @@ def main(argv=None):
     history.add_argument("--compare", nargs=2, type=int, metavar=("BEFORE", "AFTER"))
     init = commands.add_parser("init", help="交互式生成规则")
     init.add_argument("--out", default="rules.yaml")
+    config = commands.add_parser("config", help="查看项目配置")
+    config_commands = config.add_subparsers(dest="config_command", required=True)
+    config_commands.add_parser("show")
     args = parser.parse_args(argv)
     try:
         if args.command == "init":
             result = run_wizard(args.out)
+        elif args.command == "config":
+            result = load_config()
         elif args.command == "history":
             result = compare_history(args.dir, *args.compare) if args.compare else {"history": load_history(args.dir)}
         elif args.command == "profile":
@@ -81,7 +88,7 @@ def main(argv=None):
                 from .report import create_html_report
                 result = create_html_report(args.rules, args.html)
             else:
-                result = create_report(args.rules, args.out, args.incremental, args.force)
+                result = create_report(args.rules, args.out, args.incremental, args.force, args.template)
         else:
             result = read_table(args.file, args.encoding, args.sheet_name, args.sheet_index).summary()
         print(json.dumps(result, ensure_ascii=False))

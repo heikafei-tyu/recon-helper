@@ -1,10 +1,8 @@
-from dataclasses import dataclass
+"""Project-level .reconrc configuration."""
 from pathlib import Path
-
+from dataclasses import dataclass
 import yaml
-
 from .errors import RuleConfigError
-
 
 @dataclass(frozen=True)
 class RuleConfig:
@@ -12,7 +10,6 @@ class RuleConfig:
     left: str
     right: str
     raw: dict
-
 
 def load_rule_config(filename):
     source = Path(filename)
@@ -24,7 +21,23 @@ def load_rule_config(filename):
         raise RuleConfigError(f"YAML 格式错误：{exc}") from exc
     if not isinstance(raw, dict):
         raise RuleConfigError("规则必须是对象")
-    for name in ("left", "right"):
-        if not isinstance(raw.get(name), str) or not raw[name].strip():
-            raise RuleConfigError(f"{name} 必须是非空路径")
-    return RuleConfig(source, raw["left"], raw["right"], raw)
+    if "checks" not in raw:
+        for name in ("left", "right"):
+            if not isinstance(raw.get(name), str) or not raw[name].strip():
+                raise RuleConfigError(f"{name} 必须是非空路径")
+    return RuleConfig(source, raw.get("left", ""), raw.get("right", ""), raw)
+
+DEFAULTS = {"default_tolerance": "0", "parallel_workers": None, "output_dir": "output", "report_template": "detailed"}
+
+
+def load_config(start=None):
+    root = Path(start or Path.cwd())
+    path = root / ".reconrc"
+    values = dict(DEFAULTS)
+    if path.exists():
+        data = yaml.safe_load(path.read_text(encoding="utf-8-sig")) or {}
+        if not isinstance(data, dict):
+            raise ValueError(".reconrc 必须是 YAML 对象")
+        values.update({key: value for key, value in data.items() if key in DEFAULTS})
+    values["config_file"] = str(path) if path.exists() else None
+    return values
