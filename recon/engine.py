@@ -101,6 +101,10 @@ def run_rules(filename, timeout=None, progress=False):
                     raise ValueError(f"tolerance.{name}.rounding.digits 必须是 0 到 6 的整数")
             if "priority" in rules and (not isinstance(rules["priority"], int) or rules["priority"] < 0):
                 raise ValueError(f"tolerance.{name}.priority 必须是非负整数")
+    for side in ("left", "right"):
+        sheet_key = f"{side}_sheet"
+        if sheet_key in config and (not isinstance(config[sheet_key], str) or not config[sheet_key].strip()):
+            raise ValueError(f"{sheet_key} 必须是非空工作表名")
     tables = [read_table(path.parent / config[side], sheet_name=config.get(f"{side}_sheet")) for side in ("left", "right")]
     total_rows = sum(len(table.rows) for table in tables)
     indexes = []
