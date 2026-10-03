@@ -1,4 +1,5 @@
 from decimal import Decimal
+from datetime import date
 
 
 class FXRates:
@@ -28,3 +29,26 @@ class FXRates:
 
     def convert_many(self, amounts, source, target="CNY"):
         return [self.convert(amount, source, target) for amount in amounts]
+
+    @staticmethod
+    def validate_quotes(quotes, as_of=None, max_age_days=30):
+        """Return audit findings for dated quotes: stale and same-day conflicts."""
+        if not isinstance(quotes, (list, tuple)):
+            raise ValueError("汇率报价必须是列表")
+        today = date.fromisoformat(as_of) if as_of else date.today()
+        seen = {}
+        findings = []
+        for quote in quotes:
+            try:
+                currency = str(quote["currency"]).upper(); day = date.fromisoformat(str(quote["date"])); rate = Decimal(str(quote["rate"]))
+            except (KeyError, TypeError, ValueError):
+                raise ValueError("汇率报价需要 currency、date、rate 且日期合法") from None
+            if rate <= 0:
+                raise ValueError("汇率必须为正数")
+            key = (currency, day)
+            if key in seen and seen[key] != rate:
+                findings.append({"status": "rate_conflict", "currency": currency, "date": str(day), "rates": [str(seen[key]), str(rate)]})
+            seen[key] = rate
+            if (today - day).days > max_age_days:
+                findings.append({"status": "rate_expired", "currency": currency, "date": str(day), "age_days": (today - day).days, "max_age_days": max_age_days})
+        return findings
