@@ -10,7 +10,12 @@ class ResultStore:
     def __init__(self, path="recon_history.db"):
         self.path = Path(path); self.path.parent.mkdir(parents=True, exist_ok=True)
         self.db = sqlite3.connect(self.path, timeout=30, check_same_thread=False)
-        self.db.execute("PRAGMA journal_mode=WAL")
+        self.db.execute("PRAGMA busy_timeout=30000")
+        try:
+            self.db.execute("PRAGMA journal_mode=WAL")
+        except sqlite3.OperationalError:
+            # Another initializer may hold the schema lock; normal writes still use the busy timeout.
+            pass
         self.db.executescript("CREATE TABLE IF NOT EXISTS results (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, rules TEXT NOT NULL, fingerprints TEXT NOT NULL, severity TEXT NOT NULL, difference_count INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS diffs (id INTEGER PRIMARY KEY, result_id INTEGER NOT NULL REFERENCES results(id) ON DELETE CASCADE, table_name TEXT, severity TEXT, payload TEXT NOT NULL)")
         self.db.commit()
 
@@ -31,6 +36,13 @@ class ResultStore:
         for row in self.db.execute(sql, args):
             rows.append({"id": row[0], "created_at": row[1], "rules": json.loads(row[2]), "files": json.loads(row[3]), "severity": row[4], "difference_count": row[5], "differences": [json.loads(item[0]) for item in self.db.execute("SELECT payload FROM diffs WHERE result_id=?", (row[0],))]})
         return rows
+
+    def migrate_json(self, directory="history"):
+        count = 0
+        for path in sorted(Path(directory).glob("*.json")):
+            data = json.loads(path.read_text(encoding="utf-8"))
+            self.save(data.get("rules", {}), {"differences": data.get("differences", [])}, data.get("files", {})); count += 1
+        return count
 
     def close(self): self.db.close()
     def __enter__(self): return self

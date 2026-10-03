@@ -14,7 +14,7 @@ app = FastAPI(title="recon-helper API", version="0.1.0")
 PAGE = """<!doctype html><meta charset='utf-8'><title>recon-helper</title><style>body{font:15px system-ui;max-width:1000px;margin:2rem auto;color:#243047}nav a{margin-right:1rem}.fatal{color:#b91c1c;background:#fee2e2}.serious{color:#c2410c;background:#ffedd5}.hint{color:#a16207;background:#fef9c3}table{border-collapse:collapse;width:100%}td,th{padding:.5rem;border:1px solid #ddd}</style><nav><a href='/'>核对</a><a href='/web/history'>历史记录</a><a href='/web/reports'>报告下载</a></nav>{content}"""
 
 def page(content):
-    return HTMLResponse(PAGE.format(content=content))
+    return HTMLResponse(PAGE.replace("{content}", content))
 
 @app.get("/", response_class=HTMLResponse)
 def web_home():
