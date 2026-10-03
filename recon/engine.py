@@ -3,6 +3,7 @@ from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 from .config import load_rule_config
 from .filters import matches
+from .finance_checks import run_finance_checks
 from .numbers import normalize_number
 from .readers import read_table
 from .transforms import transform
@@ -12,6 +13,8 @@ def run_rules(filename):
     rule_config = load_rule_config(filename)
     path = rule_config.source
     config = rule_config.raw
+    if "checks" in config:
+        return {"left_rows": 0, "right_rows": 0, "differences": run_finance_checks(path.parent, config["checks"])}
     if not isinstance(config, dict):
         raise ValueError("规则必须是对象")
     for field in ("left", "right", "columns"):

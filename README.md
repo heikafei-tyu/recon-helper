@@ -44,6 +44,28 @@ python -m recon report examples/rules.yaml --out output/reconciliation.xlsx
 python -m recon report examples/rules.yaml --html output/reconciliation.html
 python -m recon report examples/rules.yaml --out output/reconciliation.xlsx --incremental
 ```
+
+金融报表检查可在规则文件中使用 `checks`：
+
+```yaml
+checks:
+  - type: total_check
+    detail: detail.csv
+    summary: summary.csv
+    columns: [amount, quantity]
+  - type: chain_check
+    tables: [january.csv, february.csv, march.csv]
+    start_column: 期初
+    end_column: 期末
+  - type: missing_check
+    file: monthly.csv
+    time_column: month
+    frequency: month
+    start: 2026-01
+    end: 2026-12
+```
+
+`total_check` 以汇总表最后一行作为合计行；`chain_check` 按表顺序比较前表期末与后表期初；`missing_check` 支持 `month` 和 `day`，省略起止时间时按实际数据的最小、最大值检查中间缺口。运行方式仍是 `python -m recon run finance-rules.yaml`。
 读取首个 XLSX 工作表、带表头的 CSV/TSV、非空对象数组 JSON；可用 `--sheet-name` 或 `--sheet-index` 选择 XLSX 工作表。
 列名须非空且唯一，每行字段须一致。标识符保留前导零，空值统一为 null。
 编码自动支持 UTF-8、GBK、带 BOM 的 UTF-16；存在歧义时用 `--encoding` 指定。
