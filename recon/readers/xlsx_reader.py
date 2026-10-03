@@ -29,3 +29,26 @@ def read(path, encoding=None, sheet_name=None, sheet_index=0):
         return Table(table.columns, table.rows, str(path), "xlsx", None, None, sheet.title)
     finally:
         book.close()
+
+
+def read_sheets(path):
+    """读取工作簿中所有非空工作表，返回 sheet 名到 Table 的映射。"""
+    book = load_workbook(path, read_only=True, data_only=False)
+    try:
+        result = {}
+        for sheet in book.worksheets:
+            def records():
+                for cells in sheet.iter_rows():
+                    if any(cell.data_type == "f" for cell in cells):
+                        raise ReadError("XLSX 包含公式，请先转为已核验的值")
+                    yield [cell.value for cell in cells]
+            rows = records()
+            header = next(rows, None)
+            if header is not None:
+                table = Table.from_records(header, rows)
+                result[sheet.title] = Table(table.columns, table.rows, str(path), "xlsx", None, None, sheet.title)
+        if not result:
+            raise ReadError("XLSX 工作簿没有非空工作表")
+        return result
+    finally:
+        book.close()

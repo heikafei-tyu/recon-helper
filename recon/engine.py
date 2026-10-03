@@ -8,6 +8,7 @@ from .finance_checks import run_finance_checks
 from .numbers import normalize_number
 from .readers import read_table
 from .transforms import transform
+from .units import convert_amount, normalize_date
 
 
 def run_rules(filename, timeout=None, progress=False):
@@ -100,7 +101,7 @@ def run_rules(filename, timeout=None, progress=False):
                     raise ValueError(f"tolerance.{name}.rounding.digits 必须是 0 到 6 的整数")
             if "priority" in rules and (not isinstance(rules["priority"], int) or rules["priority"] < 0):
                 raise ValueError(f"tolerance.{name}.priority 必须是非负整数")
-    tables = [read_table(path.parent / config[side]) for side in ("left", "right")]
+    tables = [read_table(path.parent / config[side], sheet_name=config.get(f"{side}_sheet")) for side in ("left", "right")]
     total_rows = sum(len(table.rows) for table in tables)
     indexes = []
     for table in tables:
@@ -135,6 +136,14 @@ def run_rules(filename, timeout=None, progress=False):
             operations = config.get("transforms", {}).get(left_column, [])
             a = transform(clean(left[key][1][left_column]), operations)
             b = transform(clean(right[key][1][right_column]), operations)
+            units = config.get("units", {}) or {}
+            if left_column in units or right_column in units:
+                setting = units.get(left_column, units.get(right_column, {}))
+                a = str(convert_amount(a, setting.get("left", "元"), setting.get("target", "元"), setting.get("rates")))
+                b = str(convert_amount(b, setting.get("right", "元"), setting.get("target", "元"), setting.get("rates")))
+            dates = config.get("dates", {}) or {}
+            if dates.get(left_column) or dates.get(right_column):
+                a, b = normalize_date(a), normalize_date(b)
             if a is None or b is None:
                 if a is None and b is None and null_policy == "equal":
                     continue

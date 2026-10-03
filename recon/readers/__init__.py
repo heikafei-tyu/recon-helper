@@ -13,3 +13,10 @@ def read_table(filename, encoding=None, sheet_name=None, sheet_index=0):
     if path.suffix.lower() == ".xlsx":
         return reader(path, encoding, sheet_name, sheet_index)
     return reader(path, encoding)
+
+
+def read_workbook(filename):
+    path = Path(filename)
+    if path.suffix.lower() != ".xlsx":
+        raise ReadError("多工作表读取只支持 XLSX")
+    return xlsx_reader.read_sheets(path)
