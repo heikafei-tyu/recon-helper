@@ -2,13 +2,13 @@
 import time
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
-from .config import load_rule_config
-from .filters import matches
-from .finance_checks import run_finance_checks
-from .numbers import normalize_number
-from .readers import read_table
-from .transforms import transform
-from .units import convert_amount, normalize_date
+from ..config import load_rule_config
+from ..filters import matches
+from ..checks import run_finance_checks
+from ..numbers import normalize_number
+from ..readers import read_table
+from ..transforms import transform
+from ..units import convert_amount, normalize_date
 
 
 def run_rules(filename, timeout=None, progress=False):
