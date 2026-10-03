@@ -128,6 +128,10 @@ def run_finance_checks(base, checks):
             result.extend(chain_check(base, rule))
         elif kind == "missing_check":
             result.extend(missing_check(base, rule))
+        elif kind == "period_check":
+            from ..period_check import period_check
+            rows = _records(base / rule["file"])
+            result.extend(period_check(rows, rule["period_column"], rule["value_column"], rule["current"], rule["previous"], rule.get("threshold", "0.3")))
         else:
             raise ValueError(f"未知金融检查类型：{kind}")
     return result
