@@ -1,4 +1,5 @@
 import pytest
+
 from recon.plugins import discover_plugins, run_plugin
 
 

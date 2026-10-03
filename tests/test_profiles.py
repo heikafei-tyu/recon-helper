@@ -1,4 +1,5 @@
 import pytest
+
 from recon.cli import main
 from recon.profiles import list_profiles, show_profile, use_profile
 
