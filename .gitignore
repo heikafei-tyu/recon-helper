@@ -8,3 +8,4 @@ output/
 *.pyc
 .env
 *.xlsx.tmp
+dist-check/
