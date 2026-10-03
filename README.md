@@ -47,6 +47,10 @@ python -m recon report examples/rules.yaml --html output/reconciliation.html
 python -m recon report examples/rules.yaml --out output/reconciliation.xlsx --incremental
 ```
 
+## 服务模式
+
+安装 `fastapi`、`httpx` 后运行 `uvicorn recon.api:app --reload`。服务提供 `POST /reconcile` 上传表格和规则并返回差异 JSON，`GET /history` 查询快照，`GET /docs` 查看自动生成的 API 文档。命令行 `recon init` 会交互式询问表名、键列、比较列和容差，确认后生成 `rules.yaml`。
+
 金融报表检查可在规则文件中使用 `checks`：
 
 ```yaml

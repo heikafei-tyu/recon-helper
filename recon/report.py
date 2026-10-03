@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from openpyxl import Workbook, load_workbook
-from openpyxl.styles import Font, PatternFill
 from openpyxl.drawing.image import Image as XLImage
+from openpyxl.styles import Font, PatternFill
 
 from .engine import run_rules
 
@@ -102,6 +102,8 @@ def create_report(rules_file, output, incremental=False, force=False):
     for key, value in summary_rows:
         summary.append([key, value])
     try:
+        import matplotlib
+        matplotlib.use("Agg")
         import matplotlib.pyplot as plt
         chart_path = output.with_suffix(".summary.png")
         labels = list(counts); values = list(counts.values())

@@ -1,7 +1,9 @@
-from pathlib import Path
 import json
 import tempfile
-from fastapi import FastAPI, File, Form, UploadFile, HTTPException
+from pathlib import Path
+
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+
 from .engine import run_rules
 from .history import load_history
 

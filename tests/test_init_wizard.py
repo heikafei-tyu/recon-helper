@@ -1,4 +1,6 @@
 from recon.init_wizard import run_wizard
+
+
 def test_init_confirm(tmp_path):
     answers = iter(["left.csv", "right.csv", "id", "amount,qty", "0.01", "y"])
     result = run_wizard(tmp_path / "rules.yaml", lambda _: next(answers), lambda _: None)

@@ -1,0 +1,4 @@
+left: left.csv
+right: right.csv
+key: month
+columns: [amount]

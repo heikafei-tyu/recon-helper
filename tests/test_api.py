@@ -1,7 +1,10 @@
 import json
+
 import pytest
+
 httpx = pytest.importorskip("httpx")
 from recon.api import app
+
 
 @pytest.mark.anyio
 async def test_reconcile_api():
