@@ -13,9 +13,15 @@ def create_html_report(rules_file, output):
     result = run_rules(rules_file)
     rows = result["differences"]
     columns = ["key", "status", "column", "left_value", "right_value", "difference"]
-    header = "".join(f"<th>{column}</th>" for column in columns)
-    body = "".join("<tr>" + "".join(f"<td>{str(row.get(column, '')).replace('&', '&amp;').replace('<', '&lt;')}</td>" for column in columns) + "</tr>" for row in rows)
-    html = f"<!doctype html><meta charset='utf-8'><title>recon-helper report</title><table><thead><tr>{header}</tr></thead><tbody>{body}</tbody></table>"
+    def esc(value):
+        return str(value).replace("&", "&amp;").replace("<", "&lt;").replace('"', "&quot;")
+    body = "".join("<tr data-status='{}' data-table='{}' title='上下文：{}'>".format(esc(row.get("status", "")), esc(row.get("left_table", row.get("from", ""))), esc(row.get("key", ""))) + "".join(f"<td>{esc(row.get(column, ''))}</td>" for column in columns) + "</tr>" for row in rows)
+    header = "".join(f"<th data-column='{column}'>{column} ↕</th>" for column in columns)
+    html = f"""<!doctype html><meta charset='utf-8'><title>recon-helper report</title>
+<style>body{{font:14px system-ui;margin:2rem}}table{{border-collapse:collapse;width:100%}}th,td{{border:1px solid #ddd;padding:6px}}th{{cursor:pointer;background:#eef2f7}}tr[data-status='mismatch']{{background:#fff2cc}}.controls{{display:flex;gap:1rem;margin:1rem 0}}label{{font-weight:600}}</style>
+<h1>Recon report</h1><div class='controls'><label>表 <select id='table'><option value=''>全部</option></select></label><label>严重程度 <select id='status'><option value=''>全部</option><option>mismatch</option><option>within_tolerance</option><option>left_only</option><option>right_only</option></select></label></div>
+<table id='report'><thead><tr>{header}</tr></thead><tbody>{body}</tbody></table>
+<script>(function(){{const table=document.querySelector('#report'), rows=[...table.tBodies[0].rows], tableSelect=document.querySelector('#table');[...new Set(rows.map(r=>r.dataset.table).filter(Boolean))].forEach(v=>tableSelect.add(new Option(v,v)));function filter(){{const t=tableSelect.value,s=document.querySelector('#status').value;rows.forEach(r=>r.hidden=(t&&r.dataset.table!==t)||(s&&r.dataset.status!==s));}}tableSelect.onchange=filter;document.querySelector('#status').onchange=filter;table.tHead.addEventListener('click',e=>{{const cell=e.target.closest('th');if(!cell)return;const i=cell.cellIndex, asc=cell.dataset.asc!=='1';rows.sort((a,b)=>String(a.cells[i]?.textContent).localeCompare(String(b.cells[i]?.textContent),undefined,{{numeric:true}})*(asc?1:-1));rows.forEach(r=>table.tBodies[0].appendChild(r));cell.dataset.asc=asc?'1':'0';}});}})();</script>"""
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(html, encoding="utf-8")

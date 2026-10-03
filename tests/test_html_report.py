@@ -8,4 +8,7 @@ def test_html_report(tmp_path):
     rules.write_text("left: left.csv\nright: right.csv\nkey: id\ncolumns: [value]\n", encoding="utf-8")
     output = tmp_path / "report.html"
     assert main(["report", str(rules), "--html", str(output)]) == 0
-    assert "mismatch" in output.read_text(encoding="utf-8")
+    html = output.read_text(encoding="utf-8")
+    assert "mismatch" in html
+    assert "id='table'" in html and "id='status'" in html
+    assert "data-column" in html and "上下文" in html
