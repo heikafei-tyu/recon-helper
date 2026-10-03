@@ -68,6 +68,20 @@ checks:
 ```
 
 `total_check` 以汇总表最后一行作为合计行；`chain_check` 按表顺序比较前表期末与后表期初；`missing_check` 支持 `month` 和 `day`，省略起止时间时按实际数据的最小、最大值检查中间缺口。运行方式仍是 `python -m recon run finance-rules.yaml`。
+
+两表规则的完整写法如下：
+
+```yaml
+left: orders.csv
+right: bank.csv
+key: order_id
+columns: [amount, quantity]
+tolerance:
+  default: {absolute: "0.01", rounding: {mode: cents, digits: 2}}
+  amount: {relative: "0.001", priority: 10}
+```
+
+完整命令包括 `read`（读取摘要）、`run`（执行核对）、`validate`（预检查规则）、`bench`（流式性能基准）和 `report`（Excel/HTML 报告）。Excel 报告的第一页是 Summary，后续包含总差异页和每个参与文件的差异明细页；`--incremental` 根据规则及所有参与文件的 SHA-256 指纹跳过未变化的核对，`--force` 覆盖已有报告。
 读取首个 XLSX 工作表、带表头的 CSV/TSV、非空对象数组 JSON；可用 `--sheet-name` 或 `--sheet-index` 选择 XLSX 工作表。
 列名须非空且唯一，每行字段须一致。标识符保留前导零，空值统一为 null。
 编码自动支持 UTF-8、GBK、带 BOM 的 UTF-16；存在歧义时用 `--encoding` 指定。
