@@ -1,0 +1,4 @@
+trade_id,trade_date,partner,currency,foreign_amount,fx_rate,cny_amount,direction
+IMP-2401,2024-01-08,Northwind LLC,USD,10000,7.12,71200,进口
+IMP-2402,2024-01-15,Alpine AG,EUR,5000,7.85,39250,进口
+EXP-2401,2024-01-22,Pacific Retail,USD,8000,7.12,56960,出口

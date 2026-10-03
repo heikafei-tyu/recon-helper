@@ -1,0 +1,4 @@
+elimination_id,entity,counterparty,period,receivable,payable,elimination_amount,approval_status
+E-2401,ParentCo,SubsidiaryA,2024Q1,125000,125000,125000,approved
+E-2402,SubsidiaryA,ParentCo,2024Q1,45000,45000,45000,approved
+E-2403,SubsidiaryB,ParentCo,2024Q1,30000,30000,30000,approved

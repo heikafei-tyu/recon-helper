@@ -1,0 +1,4 @@
+left: imports.csv
+right: fx_ledger.csv
+key: trade_id
+columns: [trade_date, partner, currency, foreign_amount, fx_rate, cny_amount, direction]

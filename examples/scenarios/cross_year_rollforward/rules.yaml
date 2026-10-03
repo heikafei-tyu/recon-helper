@@ -1,0 +1,4 @@
+left: closing_schedule.csv
+right: rollforward_ledger.csv
+keys: [account, year]
+columns: [opening_balance, debit, credit, closing_balance, period_status]

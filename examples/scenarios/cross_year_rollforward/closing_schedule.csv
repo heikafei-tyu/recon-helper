@@ -1,0 +1,5 @@
+account,year,opening_balance,debit,credit,closing_balance,period_status
+1001,2023,0,125000,30000,95000,closed
+1001,2024,95000,80000,20000,155000,open
+2202,2023,0,45000,10000,35000,closed
+2202,2024,35000,15000,5000,45000,open

@@ -1,0 +1,4 @@
+left: entity_balances.csv
+right: consolidation_workpaper.csv
+key: elimination_id
+columns: [entity, counterparty, period, receivable, payable, elimination_amount, approval_status]
