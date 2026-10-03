@@ -8,6 +8,7 @@ from .engine import run_rules
 from .profiles import list_profiles, show_profile, use_profile
 from .readers import read_table
 from .report import create_report
+from .history import load_history
 
 
 def main(argv=None):
@@ -45,9 +46,13 @@ def main(argv=None):
     use = profile_commands.add_parser("use")
     use.add_argument("name")
     use.add_argument("--out", default="profile.json")
+    history = commands.add_parser("history", help="查看核对快照")
+    history.add_argument("--dir", default="history")
     args = parser.parse_args(argv)
     try:
-        if args.command == "profile":
+        if args.command == "history":
+            result = {"history": load_history(args.dir)}
+        elif args.command == "profile":
             if args.profile_command == "list":
                 result = {"profiles": list_profiles()}
             elif args.profile_command == "show":
