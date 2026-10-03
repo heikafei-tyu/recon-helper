@@ -23,6 +23,21 @@ def aging_structure(rows, due_column="due_date", amount_column="amount", as_of=N
     return {key: {"amount": str(value), "ratio": str(value / total if total else 0)} for key, value in totals.items()}
 
 
-def compare_aging(current, previous):
+def compare_aging(current, previous, threshold="0.05"):
+    """Compare bucket ratios and classify material deterioration/improvement."""
+    try:
+        limit = Decimal(str(threshold))
+    except InvalidOperation as exc:
+        raise ValueError("账龄变化阈值非法") from exc
+    if limit < 0:
+        raise ValueError("账龄变化阈值不能为负数")
     keys = list(dict.fromkeys([*current, *previous]))
-    return {key: {"current_ratio": current.get(key, {}).get("ratio", "0"), "previous_ratio": previous.get(key, {}).get("ratio", "0"), "change": str(Decimal(current.get(key, {}).get("ratio", "0")) - Decimal(previous.get(key, {}).get("ratio", "0"))).replace("0E-28", "0")} for key in keys}
+    result = {}
+    for key in keys:
+        now = Decimal(current.get(key, {}).get("ratio", "0")); old = Decimal(previous.get(key, {}).get("ratio", "0")); change = now - old
+        label = "稳定"
+        if abs(change) > limit:
+            older_bucket = key.endswith("+") or key.startswith("180") or key.startswith("360")
+            label = "账龄恶化" if (older_bucket and change > 0) else "账龄改善" if change < 0 else "账龄恶化"
+        result[key] = {"current_ratio": str(now), "previous_ratio": str(old), "change": str(change).replace("0E-28", "0"), "threshold": str(limit), "assessment": label}
+    return result
