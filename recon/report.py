@@ -8,6 +8,7 @@ from openpyxl.drawing.image import Image as XLImage
 from openpyxl.styles import Font, PatternFill
 
 from .engine import run_rules
+from .fingerprint_store import FingerprintStore
 
 
 def create_html_report(rules_file, output):
@@ -51,7 +52,12 @@ def create_report(rules_file, output, incremental=False, force=False):
     marker = output.with_suffix(output.suffix + ".manifest.json")
     if output.exists() and not incremental and not force:
         raise ValueError(f"报告已存在：{output}；如需覆盖请使用 --force")
-    if incremental and output.exists() and marker.exists() and json.loads(marker.read_text()) == manifest:
+    db_path = output.parent / "recon_history.db"
+    with FingerprintStore(db_path) as store:
+        if marker.exists() and not store.get(str(rules_path)):
+            store.migrate_json(marker)
+        cached = all(store.get(path) == digest for path, digest in manifest.items())
+    if incremental and output.exists() and cached:
         try:
             existing = load_workbook(output, read_only=True)
             valid = {"Differences", "Summary"}.issubset(existing.sheetnames)
@@ -115,4 +121,6 @@ def create_report(rules_file, output, incremental=False, force=False):
     output.parent.mkdir(parents=True, exist_ok=True)
     book.save(output)
     marker.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    with FingerprintStore(db_path) as store:
+        store.put_many(manifest)
     return {"output": str(output), "skipped": False, "differences": len(rows)}
