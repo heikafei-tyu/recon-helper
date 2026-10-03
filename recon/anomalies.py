@@ -23,3 +23,17 @@ def detect_iqr(rows, column, multiplier=Decimal("1.5")):
     q1, q3 = _percentile(values, Decimal("0.25")), _percentile(values, Decimal("0.75"))
     low, high = q1 - multiplier * (q3 - q1), q3 + multiplier * (q3 - q1)
     return [{"row": index, "value": str(value), "lower": str(low), "upper": str(high)} for index, value in indexed if value < low or value > high]
+
+def iqr_bounds(values, multiplier=Decimal("1.5")):
+    numbers = sorted(Decimal(str(value)) for value in values)
+    if len(numbers) < 4:
+        return None
+    q1, q3 = _percentile(numbers, Decimal(".25")), _percentile(numbers, Decimal(".75"))
+    return q1 - multiplier * (q3 - q1), q3 + multiplier * (q3 - q1)
+
+def anomaly_rate(rows, column):
+    return len(detect_iqr(rows, column)) / len(rows) if rows else 0
+
+def mark_anomalies(rows, column):
+    indexes = {item["row"] for item in detect_iqr(rows, column)}
+    return [{**dict(row), "anomaly": index in indexes} for index, row in enumerate(rows)]

@@ -2,9 +2,9 @@
 import time
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
+from ..checks import run_finance_checks
 from ..config import load_rule_config
 from ..filters import matches
-from ..checks import run_finance_checks
 from ..numbers import normalize_number
 from ..readers import read_table
 from ..transforms import transform
