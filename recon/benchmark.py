@@ -55,3 +55,13 @@ def benchmark_generated(rows=100_000, timeout=None, progress=False):
         path = generate_benchmark_csv(Path(directory) / "generated.csv", rows)
         optimized = benchmark(path, timeout=timeout, progress=progress)
         return {"rows_requested": rows, "optimized": optimized, "baseline": {"method": "full-table", "memory_note": "未执行全量载入，作为流式方案的理论对照"}}
+
+
+def memory_curve(path, interval=0.1):
+    """用 memory_profiler 采样流式读取过程的内存曲线。"""
+    try:
+        from memory_profiler import memory_usage
+    except ImportError as exc:
+        raise RuntimeError("请安装 memory-profiler 后采样内存曲线") from exc
+    samples = memory_usage((benchmark, (path,), {},), interval=interval)
+    return {"samples_mb": [round(value, 3) for value in samples], "peak_mb": round(max(samples), 3), "minimum_mb": round(min(samples), 3)}
