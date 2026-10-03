@@ -10,6 +10,21 @@ def stream_csv(path):
         yield from csv.DictReader(stream)
 
 
+def stream_xlsx(path, sheet_name=None):
+    from openpyxl import load_workbook
+    book = load_workbook(path, read_only=True, data_only=True)
+    try:
+        sheet = book[sheet_name] if sheet_name else book.worksheets[0]
+        rows = sheet.iter_rows(values_only=True)
+        header = next(rows, None)
+        if header is None:
+            return
+        for values in rows:
+            yield dict(zip(header, values))
+    finally:
+        book.close()
+
+
 def benchmark(path, key="id", check_duplicates=True, timeout=None, progress=False):
     if timeout is not None and timeout < 0:
         raise ValueError("timeout 不能为负数")
@@ -23,7 +38,8 @@ def benchmark(path, key="id", check_duplicates=True, timeout=None, progress=Fals
     if progress:
         with path.open("rb") as stream:
             total_rows = max(1, sum(1 for _ in stream) - 1)
-    for row in stream_csv(path):
+    iterator = stream_xlsx(path) if path.suffix.lower() == ".xlsx" else stream_csv(path)
+    for row in iterator:
         rows += 1
         if progress and rows % 10000 == 0:
             percent = min(100.0, rows / total_rows * 100)
@@ -38,7 +54,7 @@ def benchmark(path, key="id", check_duplicates=True, timeout=None, progress=Fals
             raise TimeoutError(f"超过 {timeout} 秒")
     _, peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
-    return {"file": str(path), "bytes": path.stat().st_size, "rows": rows, "duplicates": duplicates if check_duplicates else None, "seconds": round(time.perf_counter() - started, 6), "peak_memory_mb": round(peak / 1024 / 1024, 3), "duplicate_check": check_duplicates}
+    return {"file": str(path), "format": path.suffix.lower().lstrip("."), "bytes": path.stat().st_size, "rows": rows, "duplicates": duplicates if check_duplicates else None, "seconds": round(time.perf_counter() - started, 6), "peak_memory_mb": round(peak / 1024 / 1024, 3), "duplicate_check": check_duplicates}
 
 
 def generate_benchmark_csv(path, rows=100_000):
