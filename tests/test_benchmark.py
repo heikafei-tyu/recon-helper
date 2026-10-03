@@ -1,6 +1,6 @@
 import csv
 
-from recon.benchmark import benchmark, stream_csv
+from recon.benchmark import benchmark, benchmark_generated, stream_csv
 
 
 def test_streaming_benchmark(tmp_path):
@@ -39,4 +39,14 @@ def test_progress_output(tmp_path, capsys):
     path = tmp_path / "data.csv"
     path.write_text("id\n" + "\n".join(str(i) for i in range(10000)) + "\n", encoding="utf-8")
     benchmark(path, progress=True)
-    assert "processed_rows=10000" in capsys.readouterr().out
+    output = capsys.readouterr().out
+    assert "processed_rows=10000" in output
+    assert "progress=100.0%" in output
+
+
+def test_generated_benchmark_is_streaming():
+    result = benchmark_generated(rows=100_000)
+    assert result["rows_requested"] == 100_000
+    assert result["optimized"]["rows"] == 100_000
+    assert result["optimized"]["peak_memory_mb"] < 20
+    assert result["baseline"]["method"] == "full-table"

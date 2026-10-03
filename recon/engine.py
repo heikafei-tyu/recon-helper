@@ -1,4 +1,5 @@
 """按 YAML 指定的唯一键和字段比较两张表。"""
+import time
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 from .config import load_rule_config
@@ -9,11 +10,23 @@ from .readers import read_table
 from .transforms import transform
 
 
-def run_rules(filename):
+def run_rules(filename, timeout=None, progress=False):
+    if timeout is not None and timeout < 0:
+        raise ValueError("timeout 不能为负数")
+    started = time.perf_counter()
+
+    def check_deadline(processed=0, total=None):
+        if timeout is not None and time.perf_counter() - started > timeout:
+            raise TimeoutError(f"超过 {timeout} 秒")
+        if progress and processed and (processed % 1000 == 0 or processed == total):
+            percent = processed / total * 100 if total else 0
+            print(f"processed_rows={processed} progress={percent:.1f}%")
+
     rule_config = load_rule_config(filename)
     path = rule_config.source
     config = rule_config.raw
     if "checks" in config:
+        check_deadline()
         return {"left_rows": 0, "right_rows": 0, "differences": run_finance_checks(path.parent, config["checks"])}
     if not isinstance(config, dict):
         raise ValueError("规则必须是对象")
@@ -88,6 +101,7 @@ def run_rules(filename):
             if "priority" in rules and (not isinstance(rules["priority"], int) or rules["priority"] < 0):
                 raise ValueError(f"tolerance.{name}.priority 必须是非负整数")
     tables = [read_table(path.parent / config[side]) for side in ("left", "right")]
+    total_rows = sum(len(table.rows) for table in tables)
     indexes = []
     for table in tables:
         table_keys = left_keys if table is tables[0] else right_keys
@@ -99,6 +113,7 @@ def run_rules(filename):
         key_indexes = [table.columns.index(column) for column in key_columns]
         index = {}
         for number, row in enumerate(table.rows, 2):
+            check_deadline(number - 1, total_rows)
             record = dict(zip(table.columns, row))
             filter_conditions = config.get("filters", {}).get("left" if table is tables[0] else "right", [])
             if not matches(record, filter_conditions):

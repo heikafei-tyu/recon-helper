@@ -39,6 +39,8 @@ python -m pytest -q
 python -m recon run examples/rules.yaml
 python -m recon bench examples/orders.csv --key order_id
 python -m recon bench examples/orders.csv --key order_id --progress
+python -m recon bench --progress
+python -m recon run examples/rules.yaml --progress --timeout 30
 python -m recon validate examples/rules.yaml
 python -m recon report examples/rules.yaml --out output/reconciliation.xlsx
 python -m recon report examples/rules.yaml --html output/reconciliation.html
@@ -77,7 +79,7 @@ examples 中所有数据为虚构示例，运行 `python examples/generate.py` �
 规则包含 left/right 文件路径（相对于规则文件）、唯一关联键 key 和比较字段列表 columns。
 run 输出 JSON 差异，包括键、表名、源表行号（含表头）、字段、两边值和数值差额（左减右）；缺失记录分别标为 left_only/right_only。
 字段可解析为有限数值时按 Decimal 比较，否则比较文本；容差规则按优先级逐条尝试，关联键按原始文本精确匹配。
-bench 使用逐行 CSV 读取，输出行数、重复键数和耗时，不把整个文件载入内存。
+bench 使用逐行 CSV 读取，输出行数、重复键数、耗时和峰值内存；省略文件参数会自动生成 100000 行样例并输出流式结果与全量载入理论对照。`run --progress` 输出处理进度百分比，`--timeout` 超时返回 `RECON_TIMEOUT`。
 report 命令生成 Differences 和 Summary 工作表；使用 `--incremental` 可在输入哈希未变化时跳过。
 
 ## 目录结构

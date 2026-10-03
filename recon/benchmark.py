@@ -1,4 +1,5 @@
 import csv
+import tempfile
 import time
 import tracemalloc
 from pathlib import Path
@@ -18,10 +19,15 @@ def benchmark(path, key="id", check_duplicates=True, timeout=None, progress=Fals
     rows = 0
     seen = set()
     duplicates = 0
+    total_rows = None
+    if progress:
+        with path.open("rb") as stream:
+            total_rows = max(1, sum(1 for _ in stream) - 1)
     for row in stream_csv(path):
         rows += 1
         if progress and rows % 10000 == 0:
-            print(f"processed_rows={rows}")
+            percent = min(100.0, rows / total_rows * 100)
+            print(f"processed_rows={rows} progress={percent:.1f}%")
         value = row.get(key)
         if check_duplicates and value in seen:
             duplicates += 1
@@ -33,3 +39,19 @@ def benchmark(path, key="id", check_duplicates=True, timeout=None, progress=Fals
     _, peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
     return {"file": str(path), "bytes": path.stat().st_size, "rows": rows, "duplicates": duplicates if check_duplicates else None, "seconds": round(time.perf_counter() - started, 6), "peak_memory_mb": round(peak / 1024 / 1024, 3), "duplicate_check": check_duplicates}
+
+
+def generate_benchmark_csv(path, rows=100_000):
+    path = Path(path)
+    with path.open("w", encoding="utf-8", newline="") as stream:
+        stream.write("id,amount\n")
+        for index in range(rows):
+            stream.write(f"{index},{index * 1.25:.2f}\n")
+    return path
+
+
+def benchmark_generated(rows=100_000, timeout=None, progress=False):
+    with tempfile.TemporaryDirectory(prefix="recon-bench-") as directory:
+        path = generate_benchmark_csv(Path(directory) / "generated.csv", rows)
+        optimized = benchmark(path, timeout=timeout, progress=progress)
+        return {"rows_requested": rows, "optimized": optimized, "baseline": {"method": "full-table", "memory_note": "未执行全量载入，作为流式方案的理论对照"}}
