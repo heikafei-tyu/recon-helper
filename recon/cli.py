@@ -7,6 +7,7 @@ from .benchmark import benchmark, benchmark_generated
 from .engine import run_rules
 from .readers import read_table
 from .report import create_report
+from .profiles import list_profiles, show_profile, use_profile
 
 
 def main(argv=None):
@@ -36,9 +37,24 @@ def main(argv=None):
     report.add_argument("--incremental", action="store_true")
     report.add_argument("--force", action="store_true")
     report.add_argument("--html")
+    profile = commands.add_parser("profile", help="管理配置 Profile")
+    profile_commands = profile.add_subparsers(dest="profile_command", required=True)
+    profile_commands.add_parser("list")
+    show = profile_commands.add_parser("show")
+    show.add_argument("name")
+    use = profile_commands.add_parser("use")
+    use.add_argument("name")
+    use.add_argument("--out", default="profile.json")
     args = parser.parse_args(argv)
     try:
-        if args.command == "validate":
+        if args.command == "profile":
+            if args.profile_command == "list":
+                result = {"profiles": list_profiles()}
+            elif args.profile_command == "show":
+                result = show_profile(args.name)
+            else:
+                result = use_profile(args.name, args.out)
+        elif args.command == "validate":
             run_rules(args.rules)
             result = {"valid": True, "rules": args.rules}
         elif args.command == "run":
