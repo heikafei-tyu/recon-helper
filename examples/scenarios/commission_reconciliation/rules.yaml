@@ -1,0 +1,4 @@
+left: sales_commission.csv
+right: commission_ledger.csv
+key: commission_id
+columns: [salesperson, period, sales_amount, rate, commission, approval]

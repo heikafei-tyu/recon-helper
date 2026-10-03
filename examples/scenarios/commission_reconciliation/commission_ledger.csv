@@ -1,0 +1,4 @@
+commission_id,salesperson,period,sales_amount,rate,commission,approval
+C-2401,李敏,2024-01,250000,0.02,5000,approved
+C-2402,王强,2024-01,180000,0.015,2700,approved
+C-2403,赵晨,2024-02,320000,0.025,8000,approved

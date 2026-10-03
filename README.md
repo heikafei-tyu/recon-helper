@@ -102,6 +102,10 @@ report 命令生成 Differences 和 Summary 工作表；使用 `--incremental` �
 
 ## 目录结构
 
+### 业务场景示例
+
+`examples/scenarios/` 包含独立数据、规则、预期结果和测试的真实业务结构示例：应收账款账龄、供应商对账、库存进出平衡、员工报销与银行流水、多币种进出口、跨年度滚动、合并报表抵消、佣金计算、预算与实际执行、银行对账单与账面（含未达账项）。可从仓库根目录运行 `pytest tests/test_scenario_01.py tests/test_scenario_10.py` 验证单个场景，或运行 `pytest tests/test_scenarios.py` 扫描全部场景。
+
 `recon/` 是源码，`tests/` 是单元和集成测试，`examples/` 是可运行的虚构输入，`design.md` 记录设计取舍，`docs/` 预留扩展文档位置。
 
 ## 错误码

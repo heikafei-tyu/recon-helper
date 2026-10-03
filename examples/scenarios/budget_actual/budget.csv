@@ -1,0 +1,4 @@
+budget_id,department,period,budget_amount,actual_amount,variance,owner,status
+B-2401,销售部,2024Q1,500000,480000,20000,陈芳,closed
+B-2402,研发部,2024Q1,800000,825000,-25000,刘洋,closed
+B-2403,运营部,2024Q1,300000,298000,2000,孙梅,closed

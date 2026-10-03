@@ -1,0 +1,4 @@
+left: bank_statement.csv
+right: cashbook.csv
+key: transaction_id
+columns: [value_date, description, debit, credit, balance, reconciliation_status]

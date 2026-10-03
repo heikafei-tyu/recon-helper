@@ -1,0 +1,4 @@
+left: budget.csv
+right: actual_report.csv
+key: budget_id
+columns: [department, period, budget_amount, actual_amount, variance, owner, status]
