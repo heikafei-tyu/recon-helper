@@ -72,6 +72,15 @@ def test_lower_priority_rule_can_match(tmp_path):
     assert item["rule_priority"] == 10
 
 
+def test_priority_audit_and_raw_rounding(tmp_path):
+    rules = "left: left.csv\nright: right.csv\nkey: id\ncolumns: [amount]\ntolerance:\n  amount:\n    - name: strict\n      absolute: '0.01'\n      priority: 20\n    - name: business\n      absolute: '0.10'\n      priority: 10\n      rounding:\n        mode: raw\n"
+    path = setup_rule(tmp_path, 'id,amount\na,"1,234.56"\n', "id,amount\na,1234.60\n", rules)
+    item = run_rules(path)["differences"][0]
+    assert item["tolerance_rule"] == "business"
+    assert item["rounding_mode"] == "raw"
+    assert item["ignored_rules"] == ["strict"]
+
+
 def test_text_normalization_and_null_policy(tmp_path):
     rules = "left: left.csv\nright: right.csv\nkey: id\ncolumns: [name, amount]\nnormalize:\n  trim: true\n  casefold: true\nnull_policy: equal\n"
     path = setup_rule(tmp_path, "id,name,amount\n A , Zhang San,\n", "id,name,amount\na, zhang san,\n", rules)

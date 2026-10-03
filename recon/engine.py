@@ -3,6 +3,7 @@ from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 from .config import load_rule_config
 from .filters import matches
+from .numbers import normalize_number
 from .readers import read_table
 from .transforms import transform
 
@@ -75,6 +76,12 @@ def run_rules(filename):
                         raise ValueError(f"tolerance.{name}.{field} 必须是非负有限数字")
             if "round" in rules and (not isinstance(rules["round"], int) or not 0 <= rules["round"] <= 6):
                 raise ValueError(f"tolerance.{name}.round 必须是 0 到 6 的整数")
+            rounding = rules.get("rounding")
+            if rounding is not None:
+                if not isinstance(rounding, dict) or rounding.get("mode", "raw") not in ("raw", "cents", "decimal"):
+                    raise ValueError(f"tolerance.{name}.rounding.mode 必须是 raw、cents 或 decimal")
+                if "digits" in rounding and (not isinstance(rounding["digits"], int) or not 0 <= rounding["digits"] <= 6):
+                    raise ValueError(f"tolerance.{name}.rounding.digits 必须是 0 到 6 的整数")
             if "priority" in rules and (not isinstance(rules["priority"], int) or rules["priority"] < 0):
                 raise ValueError(f"tolerance.{name}.priority 必须是非负整数")
     tables = [read_table(path.parent / config[side]) for side in ("left", "right")]
@@ -119,17 +126,23 @@ def run_rules(filename):
                 continue
             delta = None
             try:
-                da, db = Decimal(a), Decimal(b)
+                da, db = normalize_number(a), normalize_number(b)
                 if da.is_finite() and db.is_finite():
                     configured = tolerance.get(column, {}) or {}
                     candidates = configured if isinstance(configured, list) else [configured]
                     candidates = [dict(default_tol, **candidate) for candidate in candidates]
                     candidates.sort(key=lambda item: item.get("priority", 0), reverse=True)
                     matched = False
+                    ignored_rules = []
                     for rules in candidates:
                         rule_da, rule_db = da, db
+                        rounding = rules.get("rounding", {}) or {}
+                        rounding_mode = rounding.get("mode", "raw") if isinstance(rounding, dict) else "raw"
+                        digits = rounding.get("digits", 2) if isinstance(rounding, dict) else rules.get("round")
                         if "round" in rules:
-                            quantum = Decimal(1).scaleb(-int(rules["round"]))
+                            rounding_mode, digits = "decimal", rules["round"]
+                        if rounding_mode in ("cents", "decimal"):
+                            quantum = Decimal(1).scaleb(-int(digits))
                             rule_da, rule_db = rule_da.quantize(quantum, rounding=ROUND_HALF_UP), rule_db.quantize(quantum, rounding=ROUND_HALF_UP)
                         delta_value = rule_da - rule_db
                         if delta_value == 0:
@@ -140,9 +153,10 @@ def run_rules(filename):
                         threshold = max(absolute_limit, relative_limit)
                         if abs(delta_value) <= threshold:
                             method = "absolute" if absolute_limit >= relative_limit else "relative"
-                            differences.append({"key": display_key, "status": "within_tolerance", "column": column, "left_value": a, "right_value": b, "difference": str(delta_value), "tolerance": str(threshold), "tolerance_type": method, "tolerance_rule": rules.get("name", column), "relative_base": str(max(abs(rule_da), abs(rule_db))), "rule_priority": rules.get("priority", 0)})
+                            differences.append({"key": display_key, "status": "within_tolerance", "column": column, "left_value": a, "right_value": b, "difference": str(delta_value), "tolerance": str(threshold), "tolerance_type": method, "tolerance_rule": rules.get("name", column), "relative_base": str(max(abs(rule_da), abs(rule_db))), "rule_priority": rules.get("priority", 0), "rounding_mode": rounding_mode, "ignored_rules": [item.get("name", column) for item in ignored_rules]})
                             matched = True
                             break
+                        ignored_rules.append(rules)
                     if matched:
                         continue
                     delta = str(da - db)
