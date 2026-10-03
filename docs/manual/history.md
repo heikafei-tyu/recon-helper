@@ -100,3 +100,7 @@ python -m recon history --dir empty-history
 需要清理时先备份，再删除明确的历史目录。
 
 更多报告说明见 [report.md](report.md)。
+
+## 对比两次记录
+
+使用 `python -m recon history --dir history --compare 0 1` 对比按时间排序的两条记录。第一个索引是旧记录，第二个是新记录。输出 `added` 表示新增差异，`resolved` 表示已解决差异，`unchanged` 表示仍存在的差异数量。索引从 0 开始，超出范围会返回规则错误。

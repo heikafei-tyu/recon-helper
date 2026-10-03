@@ -5,7 +5,7 @@ from zipfile import BadZipFile
 
 from .benchmark import benchmark, benchmark_generated
 from .engine import run_rules
-from .history import load_history
+from .history import compare_history, load_history
 from .init_wizard import run_wizard
 from .profiles import list_profiles, show_profile, use_profile
 from .readers import read_table
@@ -49,6 +49,7 @@ def main(argv=None):
     use.add_argument("--out", default="profile.json")
     history = commands.add_parser("history", help="查看核对快照")
     history.add_argument("--dir", default="history")
+    history.add_argument("--compare", nargs=2, type=int, metavar=("BEFORE", "AFTER"))
     init = commands.add_parser("init", help="交互式生成规则")
     init.add_argument("--out", default="rules.yaml")
     args = parser.parse_args(argv)
@@ -56,7 +57,7 @@ def main(argv=None):
         if args.command == "init":
             result = run_wizard(args.out)
         elif args.command == "history":
-            result = {"history": load_history(args.dir)}
+            result = compare_history(args.dir, *args.compare) if args.compare else {"history": load_history(args.dir)}
         elif args.command == "profile":
             if args.profile_command == "list":
                 result = {"profiles": list_profiles()}
