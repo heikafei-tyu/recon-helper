@@ -1,0 +1,3 @@
+expense_id,employee,expense_date,category,amount
+EXP-01,李明,2024-03-01,交通,680
+EXP-02,王芳,2024-03-02,住宿,1200

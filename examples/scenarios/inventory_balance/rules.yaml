@@ -1,0 +1,4 @@
+left: inbound.csv
+right: stock_card.csv
+keys: [sku, warehouse]
+columns: [in_qty, out_qty, ending_qty]

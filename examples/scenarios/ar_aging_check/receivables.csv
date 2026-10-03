@@ -1,0 +1,4 @@
+invoice_id,customer,due_date,amount,status
+AR-1001,华东客户,2024-01-15,12000,open
+AR-1002,华南客户,2024-02-20,8000,open
+TOTAL,, ,20000,total

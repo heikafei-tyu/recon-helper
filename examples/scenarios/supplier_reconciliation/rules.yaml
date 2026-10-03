@@ -1,0 +1,4 @@
+left: purchases.csv
+right: payments.csv
+key: purchase_id
+columns: [net_amount, tax_amount]

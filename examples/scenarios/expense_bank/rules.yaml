@@ -1,0 +1,4 @@
+left: expenses.csv
+right: bank.csv
+key: expense_id
+columns: [amount, category]

@@ -1,0 +1,4 @@
+left: receivables.csv
+right: ledger.csv
+key: invoice_id
+columns: [amount, status]
