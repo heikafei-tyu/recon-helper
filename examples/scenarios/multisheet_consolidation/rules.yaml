@@ -1,0 +1,4 @@
+left: left.csv
+right: right.csv
+keys: [sheet, account]
+columns: [amount]

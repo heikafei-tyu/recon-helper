@@ -1,0 +1,4 @@
+left: left.csv
+right: right.csv
+key: account
+columns: [receivable, payable, offset]
