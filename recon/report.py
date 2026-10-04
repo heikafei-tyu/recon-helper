@@ -14,12 +14,6 @@ from .quality import assess_file
 
 def create_html_report(rules_file, output):
     result = run_rules(rules_file)
-    quality_scores = []
-    threshold = config.get("quality", {}).get("threshold", 70) if isinstance(config.get("quality", {}), dict) else 70
-    for source_name in source_names[:2]:
-        if source_name and (rules_path.parent / source_name).exists():
-            quality_scores.append(assess_file(rules_path.parent / source_name, config.get("keys", [config.get("key")]) if config.get("key") or config.get("keys") else None, threshold=threshold))
-    result["quality_scores"] = quality_scores
     rows = result["differences"]
     columns = ["key", "status", "column", "left_value", "right_value", "difference"]
     def esc(value):
@@ -76,6 +70,14 @@ def create_report(rules_file, output, incremental=False, force=False, template="
         if valid:
             return {"output": str(output), "skipped": True}
     result = run_rules(rules_file)
+    quality_scores = []
+    quality_config = config.get("quality", {}) if isinstance(config.get("quality", {}), dict) else {}
+    threshold = quality_config.get("threshold", 70)
+    key_columns = config.get("keys") or ([config.get("key")] if config.get("key") else None)
+    for source_name in source_names[:2]:
+        if source_name and (rules_path.parent / source_name).exists():
+            quality_scores.append(assess_file(rules_path.parent / source_name, key_columns, threshold=threshold))
+    result["quality_scores"] = quality_scores
     book = Workbook()
     summary = book.active
     summary.title = "Summary"
