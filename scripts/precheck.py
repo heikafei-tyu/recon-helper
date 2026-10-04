@@ -38,6 +38,11 @@ def main() -> int:
     check("README 基础完整（是什么/安装/运行）", ok, f"缺少: {[s for s in ['安装', '运行'] if s not in (readme.read_text(encoding='utf-8') if readme.exists() else '')]}")
 
     check("requirements.txt 存在", (ROOT / "requirements.txt").exists())
+    test_run = subprocess.run([sys.executable, "-m", "pytest", "-q"], cwd=ROOT, capture_output=True, text=True)
+    check("测试全绿", test_run.returncode == 0, test_run.stdout.splitlines()[-1] if test_run.stdout else test_run.stderr[-200:])
+    features = ["读取", "容差", "报告", "历史", "Web", "调度"]
+    readme_text = readme.read_text(encoding="utf-8") if readme.exists() else ""
+    check("README 特性清单", all(item in readme_text for item in features), f"缺少: {[item for item in features if item not in readme_text]}")
 
     secrets = []
     for p in git("ls-files").splitlines():
