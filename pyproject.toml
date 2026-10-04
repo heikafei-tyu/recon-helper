@@ -12,7 +12,7 @@ license-files = ["LICENSE"]
 authors = [{name = "recon-helper contributors"}]
 classifiers = ["Programming Language :: Python :: 3", "Programming Language :: Python :: 3 :: Only"]
 requires-python = ">=3.10"
-dependencies = ["openpyxl>=3.1", "pandas>=2.0", "PyYAML>=6.0"]
+dependencies = ["openpyxl>=3.1", "pandas>=2.0", "PyYAML>=6.0", "xlrd>=2.0", "pyarrow>=15.0"]
 
 [project.scripts]
 recon = "recon.cli:main"

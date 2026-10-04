@@ -26,3 +26,4 @@ python -m build
 ```
 
 输入文件只在本机读取。示例数据是虚构数据；生产文件不要提交到 Git。
+老式 `.xls` 文件和 `.parquet` 文件需要额外安装 `xlrd`、`pyarrow`；安装 requirements.txt 后可直接使用 `recon read file.xls` 或 `recon read file.parquet`。
