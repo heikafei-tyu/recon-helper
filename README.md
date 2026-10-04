@@ -87,3 +87,4 @@ python -m build
 ```
 
 项目采用 MIT License，详见 [LICENSE](LICENSE)。
+API 服务可通过环境变量 `RECON_API_KEY` 或 `.reconrc` 的 `api_key` 开启鉴权；请求需携带 `X-API-Key`，调用记录写入 SQLite 审计表。

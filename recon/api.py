@@ -1,8 +1,11 @@
 import json
 import tempfile
+import os
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Request
+from .config import load_config
+from .store import ResultStore
 from fastapi.responses import HTMLResponse, PlainTextResponse
 
 from .engine import run_rules
@@ -10,6 +13,18 @@ from .history import load_history
 from .store import ResultStore
 
 app = FastAPI(title="recon-helper API", version="0.1.0")
+
+@app.middleware("http")
+async def api_key_guard(request: Request, call_next):
+    configured = os.getenv("RECON_API_KEY") or load_config().get("api_key")
+    provided = request.headers.get("X-API-Key")
+    if configured and provided != configured:
+        status = 401; response = PlainTextResponse("Unauthorized", status_code=status)
+    else:
+        response = await call_next(request); status = response.status_code
+    with ResultStore() as store:
+        store.audit(provided[:8] if provided else "anonymous", request.method, request.url.path, status)
+    return response
 
 PAGE = """<!doctype html><meta charset='utf-8'><title>recon-helper</title><style>body{font:15px system-ui;max-width:1000px;margin:2rem auto;color:#243047}nav a{margin-right:1rem}.fatal{color:#b91c1c;background:#fee2e2}.serious{color:#c2410c;background:#ffedd5}.hint{color:#a16207;background:#fef9c3}table{border-collapse:collapse;width:100%}td,th{padding:.5rem;border:1px solid #ddd}</style><nav><a href='/'>核对</a><a href='/web/history'>历史记录</a><a href='/web/reports'>报告下载</a></nav>{content}"""
 
