@@ -9,3 +9,4 @@ output/
 .env
 *.xlsx.tmp
 dist-check/
+recon_history.db
