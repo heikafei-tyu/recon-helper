@@ -1,0 +1,4 @@
+left: tax_ledger.csv
+right: tax_expected.csv
+key: invoice
+columns: [taxable_amount, tax_rate, tax]

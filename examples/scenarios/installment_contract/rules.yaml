@@ -1,0 +1,4 @@
+left: contract.csv
+right: receipts.csv
+keys: [contract, installment]
+columns: [due_date, principal, interest, total]

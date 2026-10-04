@@ -1,0 +1,4 @@
+left: trades.csv
+right: revalued.csv
+key: trade
+columns: [currency, foreign_amount, book_rate, book_value]

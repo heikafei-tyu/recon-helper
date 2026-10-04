@@ -1,0 +1,4 @@
+trade,currency,foreign_amount,book_rate,book_value
+T001,USD,1000,7.20,7200
+T002,EUR,500,7.80,3900
+T003,USD,2000,7.15,14300
