@@ -125,6 +125,16 @@ def create_report(rules_file, output, incremental=False, force=False, template="
     for key, value in summary_rows:
         summary.append([key, value])
     if quality_scores:
+        quality_sheet = book.create_sheet("Quality")
+        quality_sheet.append(["table", "score", "threshold", "passed", "null_rate", "type_error_rate", "duplicate_rate", "key_uniqueness_rate", "deduction_empty", "deduction_type", "deduction_duplicates", "deduction_key"])
+        for cell in quality_sheet[1]: cell.font = Font(bold=True)
+        for quality in quality_scores:
+            dimensions, deductions = quality["dimensions"], quality["deductions"]
+            quality_sheet.append([quality["source"] or "input", quality["score"], quality["threshold"], quality["passed"], dimensions["null_rate"], dimensions["type_error_rate"], dimensions["duplicate_rate"], dimensions["key_uniqueness_rate"], deductions["empty"], deductions["type"], deductions["duplicates"], deductions["key"]])
+            if not quality["passed"]:
+                for cell in quality_sheet[quality_sheet.max_row]: cell.fill = PatternFill("solid", fgColor="FFC7CE")
+        quality_sheet.freeze_panes = "A2"
+        quality_sheet.auto_filter.ref = f"A1:L{quality_sheet.max_row}"
         summary.append(["quality_scores", ""])
         for quality in quality_scores:
             row = summary.max_row + 1
