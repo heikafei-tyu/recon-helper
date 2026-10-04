@@ -11,6 +11,7 @@ from .init_wizard import run_wizard
 from .profiles import list_profiles, show_profile, use_profile
 from .readers import read_table
 from .report import create_report
+from .scheduler import list_jobs, start as schedule_start, stop as schedule_stop
 
 
 def main(argv=None):
@@ -57,12 +58,19 @@ def main(argv=None):
     config = commands.add_parser("config", help="查看项目配置")
     config_commands = config.add_subparsers(dest="config_command", required=True)
     config_commands.add_parser("show")
+    schedule = commands.add_parser("schedule", help="管理定时核对任务")
+    schedule_commands = schedule.add_subparsers(dest="schedule_command", required=True)
+    start_schedule = schedule_commands.add_parser("start"); start_schedule.add_argument("name"); start_schedule.add_argument("rules"); start_schedule.add_argument("--at", default="00:00"); start_schedule.add_argument("--interval", type=float)
+    stop_schedule = schedule_commands.add_parser("stop"); stop_schedule.add_argument("name")
+    schedule_commands.add_parser("list")
     args = parser.parse_args(argv)
     try:
         if args.command == "init":
             result = run_wizard(args.out)
         elif args.command == "config":
             result = load_config()
+        elif args.command == "schedule":
+            result = schedule_start(args.name, args.rules, args.at, args.interval) if args.schedule_command == "start" else schedule_stop(args.name) if args.schedule_command == "stop" else {"jobs": list_jobs()}
         elif args.command == "history":
             result = compare_history(args.dir, *args.compare) if args.compare else {"history": load_history(args.dir)}
         elif args.command == "profile":
