@@ -1,0 +1,6 @@
+left: left.csv
+right: right.csv
+keys: [expense_id, period]
+columns: [policy, opening_deferred, monthly_amortization, accrual, closing_deferred]
+tolerance:
+  default: {absolute: "0.01"}

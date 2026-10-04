@@ -1,0 +1,6 @@
+left: left.csv
+right: right.csv
+keys: [deposit_id, transaction_id]
+columns: [transaction_date, state, amount, remaining_balance]
+tolerance:
+  default: {absolute: "0.01"}
