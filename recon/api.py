@@ -3,12 +3,13 @@ import tempfile
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Request
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Request, Query
 from .config import load_config
 from .store import ResultStore
 from .notify import NotificationSettings, notify_result
 from fastapi.responses import HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 
 from .engine import run_rules
 from .history import load_history
@@ -16,6 +17,13 @@ from .store import ResultStore
 
 app = FastAPI(title="recon-helper API", version="0.1.0")
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
+TEMPLATE_DIR = Path(__file__).parent.parent / "templates"
+
+def render_template(name, values):
+    text = (TEMPLATE_DIR / name).read_text(encoding="utf-8")
+    for key, value in values.items():
+        text = text.replace("{{" + key + "}}", str(value))
+    return HTMLResponse(text)
 
 @app.middleware("http")
 async def api_key_guard(request: Request, call_next):
@@ -63,8 +71,37 @@ def web_history(from_date: str | None = None, to_date: str | None = None):
 def web_reports():
     return page("<h1>报告下载</h1><p>请使用命令行生成报告：</p><pre>recon report rules.yaml --out output/reconciliation.xlsx</pre><a href='/docs'>打开 API 文档</a>")
 
+@app.get("/web/rules", response_class=HTMLResponse)
+def web_rules(request: Request):
+    return render_template("rules_editor.html", {"left": "left.csv", "right": "right.csv", "key": "id", "columns": "amount", "absolute": "0.01", "priority": "0", "errors_html": "", "saved_html": ""})
+
+@app.post("/web/rules", response_class=HTMLResponse)
+async def save_web_rules(request: Request, left: str = Form(...), right: str = Form(...), key: str = Form(...), columns: str = Form(...), absolute: str = Form(""), priority: str = Form("0")):
+    import yaml
+    values = {"left": left, "right": right, "key": key, "columns": [item.strip() for item in columns.split(",") if item.strip()], "tolerance": {"default": {"absolute": absolute or "0", "priority": int(priority or 0)}}}
+    errors = []
+    if not values["columns"]: errors.append("至少填写一个比较列")
+    try: values["tolerance"]["default"]["priority"] = int(priority or 0)
+    except ValueError: errors.append("优先级必须是整数")
+    if not key.strip(): errors.append("键列不能为空")
+    draft_dir = Path("rules-drafts"); draft_dir.mkdir(exist_ok=True)
+    path = draft_dir / "rules.yaml"; path.write_text(yaml.safe_dump(values, allow_unicode=True), encoding="utf-8")
+    if not errors:
+        from .rules import validate_rules
+        errors.extend(validate_rules(path))
+    errors_html = "<section class='errors'><h2>校验错误</h2><ul>" + "".join(f"<li>{error}</li>" for error in errors) + "</ul></section>" if errors else ""
+    saved_html = "" if errors else f"<p class='success'>规则已保存：{path}</p><pre>{path.read_text(encoding='utf-8')}</pre>"
+    return render_template("rules_editor.html", {"left": left, "right": right, "key": key, "columns": columns, "absolute": absolute, "priority": priority, "errors_html": errors_html, "saved_html": saved_html})
+
+@app.get("/web/dashboard", response_class=HTMLResponse)
+def web_dashboard(request: Request):
+    with ResultStore() as store:
+        items = store.query(limit=1000)
+    recent_rows = "".join(f"<tr><td>{item['id']}</td><td>{item['created_at']}</td><td>{item['severity']}</td><td>{item['difference_count']}</td></tr>" for item in items[:10])
+    return render_template("dashboard.html", {"total": len(items), "differences": sum(item["difference_count"] for item in items), "recent_rows": recent_rows})
+
 @app.post("/reconcile")
-async def reconcile(file: UploadFile = File(...), rules: str = Form(...), notify_webhook: str | None = Form(None)):
+async def reconcile(file: UploadFile = File(...), rules: str = Form(...), notify_webhook: str | None = Form(None), page: int = Query(1, ge=1), page_size: int = Query(100, ge=1, le=1000)):
     if not file.filename or Path(file.filename).suffix.lower() not in (".csv", ".xlsx", ".json"):
         raise HTTPException(status_code=400, detail={"code": "INVALID_FILE", "message": "仅支持 CSV/XLSX/JSON"})
     try:
@@ -84,13 +121,20 @@ async def reconcile(file: UploadFile = File(...), rules: str = Form(...), notify
             if notify_webhook:
                 result["notification"] = notify_result(result, NotificationSettings(webhook_url=notify_webhook, enabled=True))
             result["history_id"] = history_id
+            result["total_differences"] = len(result["differences"])
+            start = (page - 1) * page_size
+            result["page"] = page; result["page_size"] = page_size
+            result["differences"] = result["differences"][start:start + page_size]
             return result
         except (ValueError, OSError) as exc:
             raise HTTPException(status_code=422, detail={"code": "RECONCILE_ERROR", "message": str(exc)}) from exc
 
 @app.get("/history")
-def history(directory: str = "history"):
-    return {"items": load_history(directory)}
+def history(directory: str = "history", from_date: str | None = None, to_date: str | None = None, limit: int = Query(100, ge=1, le=1000), offset: int = Query(0, ge=0)):
+    items = load_history(directory)
+    if from_date: items = [item for item in items if item.get("created_at", "")[:10] >= from_date]
+    if to_date: items = [item for item in items if item.get("created_at", "")[:10] <= to_date]
+    return {"items": items[offset:offset + limit], "total": len(items)}
 
 @app.post("/history/{history_id}/review")
 def review_history(history_id: int, status: str = Form(...), note: str = Form("")):
