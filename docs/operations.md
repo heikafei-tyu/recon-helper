@@ -1,16 +1,82 @@
-# 运营与治理
+# 批量治理操作手册
 
-批次执行用于把多个独立规则作为一次运营任务运行：
+本文说明批次创建、人工审批闸口与异常回滚处置。批次结果追加写入 SQLite；当前 CLI/API 没有内置审批状态或删除批次的接口。因此审批需要由组织现有流程记录，回滚按纠正重跑或数据库备份恢复办理。
 
-```python
-from recon.operations import run_batch
-result = run_batch(["rules/sales.yaml", "rules/cash.yaml"], "recon_history.db")
-```
+## 一、批次创建
 
-每个条目都有 `passed`、`differences` 或 `failed` 状态、耗时、差异数和历史
-记录 ID。失败任务默认不阻止后续任务；需要严格顺序时设置 `stop_on_error=True`。
+### 前置条件
 
-`history_summary` 返回运行总数、累计差异、致命运行次数和按日期聚合的趋势，
-可直接提供给 Web 仪表盘。`review_queue` 展开所有尚未处理的差异，供复核人员
-按严重程度和历史 ID 处理。`export_history` 生成脱敏前的本地审计快照，输出
-前应确认数据库中没有客户敏感信息。
+- 已安装项目及依赖，并在仓库或规则所在环境运行过 `recon doctor`。
+- 每份规则 YAML 指向正确的数据文件；输入已完成脱敏和期间核验。
+- 规则经过 `recon validate RULES.yaml`，并在正式数据范围外的小样本上验证过。
+- `recon_history.db` 所在磁盘有足够空间，备份任务正常。
+- 明确批次名称、执行人、目标期间、规则清单及停止策略。
+
+### 操作步骤
+
+1. 记录目标期间、数据版本、规则版本和预计规则清单。批次名建议带业务域和期间，例如 `month-close-2024-06`。
+2. 对每个规则文件执行 `recon validate rules/receivables.yaml`。验证不通过时先修复，不进入正式批次。
+3. 使用 `recon batch --name month-close-2024-06 rules/receivables.yaml rules/payables.yaml rules/bank.yaml` 创建并执行批次。使用 `--stop-on-error` 可在首个失败后停止后续任务。
+4. 保存命令 JSON 输出中的 `batch_id`，并确认 `total`、`passed`、`with_differences`、`failed` 与规则清单一致。
+5. 通过 `GET /batches?limit=20` 或本地 `ResultStore.batches()` 查看持久化批次及各任务状态；通过 `recon ops summary` 查看历史汇总。
+6. 对有差异的历史记录，用 `recon review HISTORY_ID --status ... --note ...` 记录差异处置。复核状态是差异处理记录，不代表批次审批。
+
+### 注意事项
+
+- 批次会逐个执行规则并写入历史；失败任务默认不阻止后续任务，若任务有顺序依赖，应拆分批次或使用 `--stop-on-error`。
+- 同一批次名目前不保证唯一；以 `batch_id` 识别单次执行，不要只按名称关联审计记录。
+- `GET /batches` 是只读查询端点，不会启动或重跑批次。
+- `recon batch` 的退出结果应与每个 item 状态一并留档；批次完成不等于所有规则通过。
+
+## 二、审批闸口
+
+### 前置条件
+
+- 已完成批次创建，取得 `batch_id` 和各任务结果。
+- 已指定有权批准该业务期间的复核人；执行人和批准人按组织内控要求分离。
+- 审批人可查看规则版本、输入数据版本、差异清单和失败任务明细。
+- 组织已有审批记录位置，例如工单、变更单或财务关账系统。
+
+### 操作步骤
+
+1. 执行人将批次 ID、目标期间、规则文件版本、输入文件清单、执行时间和结果汇总登记到组织审批单。
+2. 审批人核对批次任务数与计划清单，查看每条任务状态、差异数和失败原因；需要时打开对应 `history_id` 的详细差异报告。
+3. 对差异调用方可使用 `recon ops review-queue` 查看未处理项目，并通过 `recon review HISTORY_ID --status 已确认无误 --note "审批单号..."` 或 `已修复` 记录逐条复核结论。
+4. 审批人按业务政策决定批准、退回或拒绝，并在组织审批系统记录审批人、时间、结论、依据和批次 ID。
+5. 将审批单号回填至批次交接记录。只有组织审批系统的明确批准记录才算业务审批完成。
+
+### 注意事项
+
+- 当前工具没有 `recon batch approve` 命令，也不在 SQLite 批次表中保存批准人或批准状态；不要把批次 `completed`、差异“已确认无误”或 HTTP 查询成功解释为审批通过。
+- 审批被退回时，不要改写旧快照。修正规则或输入后创建新的批次，并在审批单中关联原批次与重跑批次。
+- 规则变更应保留版本差异和代码/文件哈希，避免审批针对的版本与实际运行版本不同。
+
+## 三、回滚与纠正
+
+### 前置条件
+
+- 已定位问题批次 ID、受影响的 `history_id`、规则版本和输入数据版本。
+- 已暂停下游报表发布、付款、记账或其他依赖动作，避免错误结果继续传播。
+- 已确认采用纠正重跑还是数据库灾难恢复；数据管理员已准备并验证备份。
+- 有权执行数据库恢复的维护人员和变更窗口已明确。
+
+### 操作步骤
+
+1. 在事件/工单中登记批次 ID、错误表现、影响范围、发现时间和处置负责人；保存原始日志与报告。
+2. 对普通规则或数据错误，修正源数据/规则并重新执行 `recon validate`，然后以新的批次名执行 `recon batch --name month-close-2024-06-rerun ...`。
+3. 比较旧、新 `history_id` 对应的差异与汇总；需要对比 JSON 快照时，先用 `recon history` 查看列表，再用 `recon history --compare OLD_INDEX NEW_INDEX`（索引从 0 开始，按当前列表顺序）对比，并在审批记录中说明差异变化。
+4. 由复核人批准纠正结果后，恢复下游流程；将新批次与原批次建立关联，旧批次保留为审计证据。
+5. 仅在数据库损坏或灾难恢复时，从经验证的备份恢复 `recon_history.db`。维护前备份当前数据库、停止调度写入并记录恢复点；恢复后运行 `recon doctor`、检查历史和批次记录，再恢复服务。
+
+### 注意事项
+
+- 当前工具没有批次删除或事务回滚 API。不要直接删除 SQLite 行或文件来“撤销”单个批次，这会破坏结果、差异和批次任务之间的关联。
+- 恢复整个数据库会同时移除备份时间点之后的所有核对、复核、审计和调度记录；这不是单批次回滚，必须由数据管理员评估并留存恢复前副本。
+- `recon review` 只更新差异的复核状态和备注，不会撤销批次执行或恢复输入数据。
+- 若结果已经被外部系统消费，必须在相应系统执行更正分录/撤销流程；本地核对记录本身不能撤销外部业务动作。
+
+## 相关入口
+
+- 命令行：`recon batch`、`recon ops summary`、`recon ops review-queue`、`recon review`、`recon history`。
+- API：`GET /batches`、`GET /dashboard/summary`、`GET /review-queue`。
+- 实现与测试：`recon/operations.py`、`recon/store.py`、`tests/test_operations.py`、`tests/test_batches_api.py`。
