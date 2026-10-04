@@ -1,0 +1,4 @@
+left: ledger.csv
+right: expected.csv
+keys: [sku, lot]
+columns: [issued, unit_cost]

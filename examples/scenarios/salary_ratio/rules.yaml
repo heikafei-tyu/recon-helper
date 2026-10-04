@@ -1,0 +1,6 @@
+left: left.csv
+right: right.csv
+keys: [employee, month]
+columns: [gross, net_ratio]
+tolerance:
+  net_ratio: {absolute: 0}

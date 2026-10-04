@@ -1,0 +1,4 @@
+left: actual.csv
+right: allocated.csv
+keys: [project, period]
+columns: [material, labor, overhead, total]

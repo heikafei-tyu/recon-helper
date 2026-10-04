@@ -1,0 +1,4 @@
+sku,lot,received,issued,unit_cost
+SKU-A,L001,100,60,10
+SKU-A,L002,80,20,11
+SKU-B,L003,50,10,20
