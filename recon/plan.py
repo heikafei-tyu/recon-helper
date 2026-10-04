@@ -1,5 +1,6 @@
 """Build and execute dependency-aware reconciliation plans."""
 
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 from time import perf_counter
@@ -76,7 +77,7 @@ class ExecutionPlan:
             "seconds": round(perf_counter() - started, 6),
         }
 
-    def run_with_policy(self, policy=None, fail_fast=False, store=None, plan_file="", run_id=None, idempotency_key=None):
+    def run_with_policy(self, policy=None, fail_fast=False, store=None, plan_file="", run_id=None, idempotency_key=None, max_workers=1):
         """按层执行并返回带执行事件的结果，适合 CLI 和调度器使用。"""
         policy = policy or RetryPolicy()
         started = perf_counter()
@@ -89,13 +90,30 @@ class ExecutionPlan:
         for layer in layers:
             for task in layer:
                 if task.name in completed:
-                    reports[task.name] = execute(task.name, lambda: None, RetryPolicy(1))
-                    reports[task.name].status = "skipped"
+                    skipped = execute(task.name, lambda: None, RetryPolicy(1))
+                    skipped.status = "skipped"
+                    reports[task.name] = skipped
+            pending = [task for task in layer if task.name not in completed]
+            if max_workers > 1 and len(pending) > 1 and not fail_fast:
+                with ThreadPoolExecutor(max_workers=min(max_workers, len(pending))) as pool:
+                    futures = {task.name: pool.submit(execute, task.name, lambda task=task: run_rules(task.rules_file), policy) for task in pending}
+                    layer_reports = [(task, futures[task.name].result()) for task in pending]
+            else:
+                layer_reports = []
+                for task in pending:
+                    report = execute(task.name, lambda task=task: run_rules(task.rules_file), policy)
+                    layer_reports.append((task, report))
+                    if fail_fast and not report.succeeded:
+                        stopped = True
+                        break
+            for task, report in layer_reports:
+                if task.name in completed:
                     continue
-                report = execute(task.name, lambda task=task: run_rules(task.rules_file), policy)
                 reports[task.name] = report
                 if store and run_id:
                     store.update_plan_task(run_id, task.name, report.status, report.attempts, sum(e.elapsed for e in report.events), report.error)
+            if stopped:
+                break
                 if fail_fast and not report.succeeded:
                     stopped = True
                     break

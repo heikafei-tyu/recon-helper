@@ -48,3 +48,15 @@ def test_plan_cli_persists_run_and_idempotency(tmp_path, capsys, monkeypatch):
     assert main(["plan", str(tmp_path / "plan.yaml"), "--idempotency-key", "daily-1"]) == 0
     second = json.loads(capsys.readouterr().out)
     assert second["run_id"] == 1
+
+
+def test_plan_parallel_layer_runs_all_tasks(tmp_path, capsys):
+    for name in ("a", "b"):
+        (tmp_path / f"{name}.csv").write_text("id,v\na,1\n", encoding="utf-8")
+    for name in ("a", "b"):
+        (tmp_path / f"{name}.yaml").write_text(f"left: {name}.csv\nright: {name}.csv\nkey: id\ncolumns: [v]\n", encoding="utf-8")
+    plan = tmp_path / "plan.yaml"
+    plan.write_text("tasks:\n  - name: a\n    rules: a.yaml\n  - name: b\n    rules: b.yaml\n", encoding="utf-8")
+    assert main(["plan", str(plan), "--workers", "2"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert {payload["execution"][key]["status"] for key in ("a", "b")} == {"success"}

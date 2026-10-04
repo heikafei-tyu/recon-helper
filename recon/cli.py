@@ -99,6 +99,7 @@ def main(argv=None):
     plan.add_argument("--idempotency-key")
     plan.add_argument("--run-id", type=int)
     plan.add_argument("--status", action="store_true")
+    plan.add_argument("--workers", type=int, default=1)
     rules_cmd = commands.add_parser("rules", help="规则版本工具")
     rules_commands = rules_cmd.add_subparsers(dest="rules_command", required=True)
     rules_diff_cmd = rules_commands.add_parser("diff", help="比较两版 YAML 规则")
@@ -151,6 +152,7 @@ def main(argv=None):
                 result = execution_plan.run_with_policy(
                     RetryPolicy(args.attempts, args.delay, args.timeout), args.fail_fast,
                     store=store, plan_file=source, run_id=args.run_id, idempotency_key=args.idempotency_key,
+                    max_workers=args.workers,
                 )
         elif args.command == "rules":
             result = diff_rules(args.old, args.new)
