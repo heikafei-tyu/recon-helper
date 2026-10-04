@@ -1,0 +1,4 @@
+left: left.csv
+right: right.csv
+keys: [entry_id, account]
+columns: [entity, account, debit, credit]

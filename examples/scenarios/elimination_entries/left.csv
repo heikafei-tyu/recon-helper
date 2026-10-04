@@ -1,0 +1,3 @@
+entry_id,entity,account,debit,credit
+E100,子公司A,长期股权投资,100000,0
+E100,合并层面,投资收益,0,100000

@@ -1,0 +1,4 @@
+left: left.csv
+right: right.csv
+key: currency
+columns: [entity, period, foreign_amount, rate, cny_amount]

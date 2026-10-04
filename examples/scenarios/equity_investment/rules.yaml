@@ -1,0 +1,4 @@
+left: left.csv
+right: right.csv
+key: investment
+columns: [period, opening_balance, profit_share, dividend, closing_balance]

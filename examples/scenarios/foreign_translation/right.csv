@@ -1,0 +1,3 @@
+entity,period,currency,foreign_amount,rate,cny_amount
+海外子公司,2024Q1,USD,100000,7.2,720000
+海外子公司,2024Q1,EUR,50000,7.8,390000

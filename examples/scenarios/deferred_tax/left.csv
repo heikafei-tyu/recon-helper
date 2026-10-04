@@ -1,0 +1,3 @@
+item,period,temporary_difference,tax_rate,deferred_tax
+固定资产折旧,2024Q1,200000,0.25,50000
+坏账准备,2024Q1,80000,0.25,20000

@@ -124,7 +124,7 @@ def create_report(rules_file, output, incremental=False, force=False, template="
     summary_rows = [("tool_version", "0.1.0"), ("run_at_utc", datetime.now(timezone.utc).isoformat()), ("rules_file", str(rules_path)), ("left_file", str(sources[1]) if len(sources) > 1 else None), ("right_file", str(sources[2]) if len(sources) > 2 else None), ("left_sha256", manifest.get(str(sources[1])) if len(sources) > 1 else None), ("right_sha256", manifest.get(str(sources[2])) if len(sources) > 2 else None), ("left_rows", result.get("left_rows", 0)), ("right_rows", result.get("right_rows", 0)), ("differences", len(rows)), ("conclusion", "通过" if not rows else "存在差异"), *counts.items()]
     for key, value in summary_rows:
         summary.append([key, value])
-    if quality_scores:
+    if quality_scores and template != "simple":
         quality_sheet = book.create_sheet("Quality")
         quality_sheet.append(["table", "score", "threshold", "passed", "null_rate", "type_error_rate", "duplicate_rate", "key_uniqueness_rate", "deduction_empty", "deduction_type", "deduction_duplicates", "deduction_key"])
         for cell in quality_sheet[1]: cell.font = Font(bold=True)
