@@ -8,10 +8,12 @@ def read_table(filename, encoding=None, sheet_name=None, sheet_index=0, skip_row
         csv_reader,
         fixed_width_reader,
         json_reader,
+        ods_reader,
         parquet_reader,
         tsv_reader,
         xls_reader,
         xlsx_reader,
+        xml_reader,
     )
 
     path = Path(filename)
@@ -26,12 +28,16 @@ def read_table(filename, encoding=None, sheet_name=None, sheet_index=0, skip_row
         ".xlsx": xlsx_reader.read,
         ".xls": xls_reader.read,
         ".parquet": parquet_reader.read,
+        ".ods": ods_reader.read,
+        ".xml": xml_reader.read,
     }
     reader = readers.get(path.suffix.lower())
     if reader is None:
         raise ReadError(f"不支持的文件格式：{path.suffix}")
     if path.suffix.lower() == ".xlsx":
         return reader(path, encoding, sheet_name, sheet_index, skip_rows)
+    if path.suffix.lower() == ".ods":
+        return reader(path, encoding, sheet_name)
     return reader(path, encoding)
 
 

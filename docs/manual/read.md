@@ -131,3 +131,55 @@ python -m recon read orders.csv > output/read.json
 遇到异常请保留完整错误前缀和输入文件类型。
 
 更多规则示例见 [run.md](run.md)。
+# read：读取表格
+
+`read` 输出输入文件的列名、行数和类型推断，是运行核对前的快速体检命令。
+
+## 支持格式
+
+| 扩展名 | 读取方式 | 备注 |
+|---|---|---|
+| `.csv` | 自动识别编码 | 支持 UTF-8、GBK 等常见编码 |
+| `.tsv` | 制表符分隔 | 与 CSV 相同的类型推断 |
+| `.json` | 对象数组 | 每个对象对应一行 |
+| `.xlsx` | openpyxl | 支持工作表、表头偏移和只读模式 |
+| `.xls` | xlrd | 支持旧版 Excel 日期序列号 |
+| `.ods` | OpenDocument XML | 无需 LibreOffice，解析 `content.xml` |
+| `.xml` | 行列式 XML | 支持 `row/cell`、`record/field` 结构 |
+| `.parquet` | pyarrow | 保留列类型映射 |
+
+## 语法
+
+```powershell
+recon read <文件>
+```
+
+示例：
+
+```powershell
+recon read examples/orders.csv
+# 行数: 3
+# 列: order_id, amount, status
+```
+
+```powershell
+recon read data/monthly.ods
+# 格式: ods
+# 工作表: Sheet1
+```
+
+```powershell
+recon read data/export.xml
+# 类型: xml
+# 列: id, amount
+```
+
+## 常见错误
+
+- 文件不存在：检查路径和当前工作目录。
+- 扩展名不支持：将文件转换为支持格式，或确认扩展名没有拼写错误。
+- ODS 损坏：确认压缩包内存在 `content.xml`，不要把导出的 PDF 重命名为 `.ods`。
+- XML 没有行数据：将记录组织为 `row/cell` 或 `record/field` 元素，并把第一行作为表头。
+- 列数不一致：补齐缺失单元格或修正导出程序的列布局。
+
+读取成功后再执行 `recon run`，可避免把格式问题误判为业务差异。
