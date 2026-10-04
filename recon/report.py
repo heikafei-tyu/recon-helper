@@ -7,6 +7,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.drawing.image import Image as XLImage
 from openpyxl.styles import Font, PatternFill
 
+from . import __version__
 from .engine import run_rules
 from .fingerprint_store import FingerprintStore
 from .quality import assess_file
@@ -170,7 +171,7 @@ def create_report(rules_file, output, incremental=False, force=False, template="
         for status in ("mismatch", "within_tolerance", "left_only", "right_only")
     }
     summary_rows = [
-        ("tool_version", "0.1.0"),
+        ("tool_version", f"v{__version__}"),
         ("run_at_utc", datetime.now(timezone.utc).isoformat()),
         ("rules_file", str(rules_path)),
         ("left_file", str(sources[1]) if len(sources) > 1 else None),

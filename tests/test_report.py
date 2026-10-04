@@ -20,6 +20,7 @@ def test_report_and_incremental_skip(tmp_path):
     metrics = {row[0].value: row[1].value for row in book["Summary"].iter_rows(min_row=2)}
     assert metrics["run_at_utc"]
     assert metrics["conclusion"] == "存在差异"
+    assert metrics["tool_version"] == "v1.0.1"
     assert len(metrics["left_sha256"]) == 64
     assert create_report(rules, output, incremental=True)["skipped"] is True
 

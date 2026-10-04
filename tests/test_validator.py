@@ -50,3 +50,22 @@ def test_validator_reports_missing_keys(tmp_path):
     path.write_text("{}", encoding="utf-8")
     errors = validate_rules(path)
     assert len(errors) >= 3
+
+
+def test_validator_reports_yaml_location_for_malformed_file(tmp_path):
+    path = tmp_path / "broken.yaml"
+    path.write_text("left: [unclosed\n", encoding="utf-8")
+    errors = validate_rules(path)
+    assert len(errors) == 1
+    assert "规则文件不可读取" in errors[0]
+
+
+def test_validator_reports_missing_source_path(tmp_path):
+    path = tmp_path / "rules.yaml"
+    path.write_text(
+        yaml.safe_dump({"left": "missing.csv", "right": "also-missing.csv", "key": "id", "columns": ["amount"]}),
+        encoding="utf-8",
+    )
+    errors = validate_rules(path)
+    assert any("left 文件不存在" in error for error in errors)
+    assert any("right 文件不存在" in error for error in errors)
