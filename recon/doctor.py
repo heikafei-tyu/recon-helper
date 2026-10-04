@@ -9,7 +9,13 @@ import locale
 
 from .config import load_config
 
-REQUIRED = {"yaml": "PyYAML", "openpyxl": "openpyxl", "pandas": "pandas"}
+REQUIRED = {
+    "yaml": "PyYAML",
+    "openpyxl": "openpyxl",
+    "pandas": "pandas",
+    "xlrd": "xlrd",
+    "pyarrow": "pyarrow",
+}
 
 
 def _check(name, passed, detail):
@@ -30,11 +36,26 @@ def doctor(root=None, db_path=None):
             missing.append(package)
     checks.append(_check("dependencies", not missing, "ok" if not missing else "missing: " + ", ".join(missing)))
     encoding = locale.getpreferredencoding(False)
-    checks.append(_check("encoding", encoding.upper() in {"UTF-8", "UTF8"}, encoding))
+    normalized_encoding = encoding.replace("-", "").upper()
+    windows_legacy = sys.platform == "win32" and normalized_encoding in {"CP936", "GBK", "GB2312"}
+    checks.append(_check("encoding", normalized_encoding in {"UTF8", "UTF8SIG"} or windows_legacy, encoding))
     usage = shutil.disk_usage(root)
     checks.append(_check("disk", usage.free >= 100 * 1024 * 1024, f"free_bytes={usage.free}"))
     try:
         config = load_config(root)
+        workers = config.get("parallel_workers")
+        if workers is not None and (not isinstance(workers, int) or isinstance(workers, bool) or workers < 1):
+            raise ValueError("parallel_workers 必须是正整数")
+        if config.get("report_template") not in {"simple", "detailed", "management"}:
+            raise ValueError("report_template 必须是 simple、detailed 或 management")
+        try:
+            tolerance = float(config.get("default_tolerance", "0"))
+        except (TypeError, ValueError) as exc:
+            raise ValueError("default_tolerance 必须是非负数字") from exc
+        if tolerance < 0:
+            raise ValueError("default_tolerance 必须是非负数字")
+        if not isinstance(config.get("output_dir"), str) or not config["output_dir"].strip():
+            raise ValueError("output_dir 必须是非空字符串")
         checks.append(_check("config", True, config.get("config_file") or "defaults"))
     except Exception as exc:
         checks.append(_check("config", False, exc))

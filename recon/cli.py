@@ -166,6 +166,8 @@ def main(argv=None):
         else:
             result = read_table(args.file, args.encoding, args.sheet_name, args.sheet_index).summary()
         print(json.dumps(result, ensure_ascii=False))
+        if args.command == "doctor" and not result["ok"]:
+            return 1
         return 0
     except TimeoutError as exc:
         print(f"RECON_TIMEOUT: {exc}", file=sys.stderr)
