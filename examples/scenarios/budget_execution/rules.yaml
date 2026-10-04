@@ -1,4 +1,4 @@
 left: left.csv
 right: right.csv
-key: contract
+key: dept
 columns: [amount]
