@@ -22,3 +22,11 @@ tasks:
 任务配置包含 `name`、`rules`、可选 `depends_on` 和 `tags`。执行前会检查重复名称、缺失依赖和循环依赖。`ExecutionPlan.run(max_workers=...)` 返回每个任务的核对结果、执行层和总耗时。
 
 该模块适合把月度明细核对、汇总核对和报表检查组织成稳定的业务顺序；它不会修改规则文件或输入数据。
+
+也可以使用显式形式 `python -m recon plan run plan.yaml --attempts 2`。程序会
+先校验重复任务、缺失依赖和循环依赖，再按依赖层执行；每个任务的失败、重试
+和超时事件都会出现在 JSON 输出中。
+
+使用 `python -m recon rules diff old.yaml new.yaml` 比较两版规则。输出包括
+`added`、`removed`、`changed` 三组清单，并以字段路径显示 `keys`、`columns`
+和 `tolerance` 的具体变化，适合在提交规则前复核口径。

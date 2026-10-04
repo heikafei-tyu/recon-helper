@@ -15,6 +15,7 @@ from .report import create_report
 from .scheduler import list_jobs, start as schedule_start, stop as schedule_stop
 from .plan import plan_from_config
 from .execution import RetryPolicy
+from .rules_diff import diff_rules
 import yaml
 
 
@@ -74,6 +75,11 @@ def main(argv=None):
     plan.add_argument("--delay", type=float, default=0.0)
     plan.add_argument("--timeout", type=float)
     plan.add_argument("--fail-fast", action="store_true")
+    rules_cmd = commands.add_parser("rules", help="规则版本工具")
+    rules_commands = rules_cmd.add_subparsers(dest="rules_command", required=True)
+    rules_diff_cmd = rules_commands.add_parser("diff", help="比较两版 YAML 规则")
+    rules_diff_cmd.add_argument("old")
+    rules_diff_cmd.add_argument("new")
     args = parser.parse_args(argv)
     try:
         if args.command == "init":
@@ -93,6 +99,8 @@ def main(argv=None):
             result = execution_plan.run_with_policy(
                 RetryPolicy(args.attempts, args.delay, args.timeout), args.fail_fast
             )
+        elif args.command == "rules":
+            result = diff_rules(args.old, args.new)
         elif args.command == "profile":
             if args.profile_command == "list":
                 result = {"profiles": list_profiles()}
