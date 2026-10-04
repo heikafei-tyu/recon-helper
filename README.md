@@ -68,6 +68,12 @@ Web 页面支持上传核对、历史筛选、结果排序和静态资源导出�
 
 启动 `uvicorn recon.api:app --reload` 后打开 `http://127.0.0.1:8000/`。核对页可上传左右表和 YAML 规则并显示分级差异；历史页查看已保存的核对记录；报告页提供报告生成入口。结果和差异会写入本地 `recon_history.db`，无数据库时 `history` 命令自动回退到 `history/*.json`。
 
+规则编辑器位于 `/web/rules`，仪表盘位于 `/web/dashboard`；页面模板在 `templates/`，浏览器资源在 `recon/static/`。
+
+API `POST /reconcile` 支持 `page` 和 `page_size` 分页参数，`GET /history` 支持
+`from_date`、`to_date` 日期过滤以及 `limit`/`offset` 分页。完整说明见
+[Web 文档](docs/web.md)。
+
 ## FAQ
 
 - 中文乱码：`read --encoding gbk`。
