@@ -24,6 +24,7 @@ import yaml
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="本地表格核对工具")
+    parser.add_argument("--version", action="version", version="v1.0.0")
     commands = parser.add_subparsers(dest="command", required=True)
     read = commands.add_parser("read", help="读取表格并输出 JSON 摘要")
     read.add_argument("file")
