@@ -1,0 +1,6 @@
+left: left.csv
+right: right.csv
+keys: [elimination_id, level, account]
+columns: [parent_entity, child_entity, debit, credit, amount]
+tolerance:
+  default: {absolute: "0.01"}

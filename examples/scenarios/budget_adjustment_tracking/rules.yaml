@@ -1,0 +1,6 @@
+left: left.csv
+right: right.csv
+keys: [department, cost_center, period, budget_version]
+columns: [base_budget, increase, decrease, final_budget, approval_ref]
+tolerance:
+  default: {absolute: "0.01"}

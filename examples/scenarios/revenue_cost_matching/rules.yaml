@@ -1,0 +1,6 @@
+left: left.csv
+right: right.csv
+keys: [contract_id, period]
+columns: [recognition_basis, revenue_recognized, cost_accrued, unbilled_revenue, accrued_cost, gross_margin]
+tolerance:
+  default: {absolute: "0.01"}

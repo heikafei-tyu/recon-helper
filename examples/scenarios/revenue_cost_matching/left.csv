@@ -1,0 +1,4 @@
+contract_id,period,recognition_basis,revenue_recognized,cost_accrued,unbilled_revenue,accrued_cost,gross_margin
+CT-701,2024-04,权责发生制,360000,218000,40000,18000,142000
+CT-702,2024-04,权责发生制,245000,151000,0,26000,94000
+CT-703,2024-04,权责发生制,510000,332000,75000,32000,178000

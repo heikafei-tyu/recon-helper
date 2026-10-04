@@ -1,0 +1,4 @@
+department,cost_center,period,budget_version,base_budget,increase,decrease,final_budget,approval_ref
+销售部,华东,2024Q2,V1,800000,60000,0,860000,BG-401
+生产部,工厂A,2024Q2,V1,1200000,0,90000,1110000,BG-402
+研发部,平台组,2024Q2,V1,500000,35000,15000,520000,BG-403
