@@ -60,3 +60,19 @@ def test_explicit_encoding(tmp_path):
     with pytest.raises(ReadError):
         read_table(path)
     assert read_table(path, "utf-16-le").rows == (("001",),)
+
+
+@pytest.mark.parametrize("target_kind", ["missing", "directory"])
+def test_input_path_errors_are_read_errors(tmp_path, target_kind):
+    path = tmp_path / ("missing.csv" if target_kind == "missing" else "folder.csv")
+    if target_kind == "directory":
+        path.mkdir()
+    with pytest.raises(ReadError, match="输入文件不存在|输入路径不是文件"):
+        read_table(path)
+
+
+def test_empty_extension_is_reported_as_unsupported(tmp_path):
+    path = tmp_path / "table"
+    path.write_text("id\n1\n", encoding="utf-8")
+    with pytest.raises(ReadError, match="不支持的文件格式"):
+        read_table(path)

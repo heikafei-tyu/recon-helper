@@ -15,6 +15,10 @@ def read_table(filename, encoding=None, sheet_name=None, sheet_index=0, skip_row
     )
 
     path = Path(filename)
+    if not path.exists():
+        raise ReadError(f"输入文件不存在：{path}")
+    if not path.is_file():
+        raise ReadError(f"输入路径不是文件：{path}")
     readers = {
         ".csv": csv_reader.read,
         ".tsv": tsv_reader.read,
@@ -35,6 +39,10 @@ def read_workbook(filename):
     from . import xlsx_reader
 
     path = Path(filename)
+    if not path.exists():
+        raise ReadError(f"输入文件不存在：{path}")
+    if not path.is_file():
+        raise ReadError(f"输入路径不是文件：{path}")
     if path.suffix.lower() != ".xlsx":
         raise ReadError("多工作表读取只支持 XLSX")
     return xlsx_reader.read_sheets(path)
