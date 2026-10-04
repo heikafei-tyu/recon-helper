@@ -101,6 +101,23 @@ def run_rules(filename, timeout=None, progress=False):
                     raise ValueError(f"tolerance.{name}.rounding.digits 必须是 0 到 6 的整数")
             if "priority" in rules and (not isinstance(rules["priority"], int) or rules["priority"] < 0):
                 raise ValueError(f"tolerance.{name}.priority 必须是非负整数")
+            if "tiers" in rules:
+                tiers = rules["tiers"]
+                if not isinstance(tiers, list) or not tiers:
+                    raise ValueError(f"tolerance.{name}.tiers 必须是非空列表")
+                previous = Decimal("-1")
+                for tier in tiers:
+                    if not isinstance(tier, dict) or "absolute" not in tier:
+                        raise ValueError(f"tolerance.{name}.tiers 每档必须包含 absolute")
+                    try:
+                        absolute = Decimal(str(tier["absolute"]))
+                        up_to = Decimal(str(tier["up_to"])) if tier.get("up_to") is not None else None
+                    except InvalidOperation as exc:
+                        raise ValueError(f"tolerance.{name}.tiers 数值格式错误") from exc
+                    if absolute < 0 or (up_to is not None and up_to <= previous):
+                        raise ValueError(f"tolerance.{name}.tiers 必须按 up_to 递增且容差非负")
+                    if up_to is not None:
+                        previous = up_to
     for side in ("left", "right"):
         sheet_key = f"{side}_sheet"
         if sheet_key in config and (not isinstance(config[sheet_key], str) or not config[sheet_key].strip()):
@@ -166,6 +183,17 @@ def run_rules(filename, timeout=None, progress=False):
                     matched = False
                     ignored_rules = []
                     for rules in candidates:
+                        selected_band = None
+                        if isinstance(rules.get("tiers"), list):
+                            amount = max(abs(da), abs(db))
+                            selected = rules["tiers"][-1]
+                            for tier in rules["tiers"]:
+                                limit = tier.get("up_to")
+                                if limit is None or amount <= Decimal(str(limit)):
+                                    selected = tier
+                                    break
+                            selected_band = selected.get("name") or selected.get("up_to") or "以上"
+                            rules = {**rules, **selected}
                         rule_da, rule_db = da, db
                         rounding = rules.get("rounding", {}) or {}
                         rounding_mode = rounding.get("mode", "raw") if isinstance(rounding, dict) else "raw"
@@ -184,7 +212,7 @@ def run_rules(filename, timeout=None, progress=False):
                         threshold = max(absolute_limit, relative_limit)
                         if abs(delta_value) <= threshold:
                             method = "absolute" if absolute_limit >= relative_limit else "relative"
-                            differences.append({"key": display_key, "status": "within_tolerance", "column": column, "left_value": a, "right_value": b, "difference": str(delta_value), "tolerance": str(threshold), "tolerance_type": method, "tolerance_rule": rules.get("name", column), "relative_base": str(max(abs(rule_da), abs(rule_db))), "rule_priority": rules.get("priority", 0), "rounding_mode": rounding_mode, "ignored_rules": [item.get("name", column) for item in ignored_rules]})
+                            differences.append({"key": display_key, "status": "within_tolerance", "column": column, "left_value": a, "right_value": b, "difference": str(delta_value), "tolerance": str(threshold), "tolerance_type": method, "tolerance_rule": rules.get("name", column), "tolerance_band": selected_band, "relative_base": str(max(abs(rule_da), abs(rule_db))), "rule_priority": rules.get("priority", 0), "rounding_mode": rounding_mode, "ignored_rules": [item.get("name", column) for item in ignored_rules]})
                             matched = True
                             break
                         ignored_rules.append(rules)
