@@ -7,12 +7,14 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Request
 from .config import load_config
 from .store import ResultStore
 from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi.staticfiles import StaticFiles
 
 from .engine import run_rules
 from .history import load_history
 from .store import ResultStore
 
 app = FastAPI(title="recon-helper API", version="0.1.0")
+app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 
 @app.middleware("http")
 async def api_key_guard(request: Request, call_next):
@@ -26,7 +28,7 @@ async def api_key_guard(request: Request, call_next):
         store.audit(provided[:8] if provided else "anonymous", request.method, request.url.path, status)
     return response
 
-PAGE = """<!doctype html><meta charset='utf-8'><title>recon-helper</title><style>body{font:15px system-ui;max-width:1000px;margin:2rem auto;color:#243047}nav a{margin-right:1rem}.fatal{color:#b91c1c;background:#fee2e2}.serious{color:#c2410c;background:#ffedd5}.hint{color:#a16207;background:#fef9c3}table{border-collapse:collapse;width:100%}td,th{padding:.5rem;border:1px solid #ddd}</style><nav><a href='/'>核对</a><a href='/web/history'>历史记录</a><a href='/web/reports'>报告下载</a></nav>{content}"""
+PAGE = """<!doctype html><meta charset='utf-8'><title>recon-helper</title><link rel='stylesheet' href='/static/style.css'><nav><a href='/'>核对</a><a href='/web/history'>历史记录</a><a href='/web/reports'>报告下载</a></nav>{content}<script src='/static/app.js'></script>"""
 
 def page(content):
     return HTMLResponse(PAGE.replace("{content}", content))
@@ -46,13 +48,15 @@ async def web_reconcile(left: UploadFile = File(...), right: UploadFile = File(.
         path = root / "rules.yaml"; path.write_text(__import__("yaml").safe_dump(config), encoding="utf-8")
         result = run_rules(path)
     rows = "".join(f"<tr class={'fatal' if r.get('status') in ('left_only','right_only','data_missing') else 'serious' if r.get('status') in ('mismatch','total_mismatch','chain_mismatch') else 'hint'}><td>{r.get('key','')}</td><td>{r.get('status','')}</td><td>{r.get('column','')}</td><td>{r.get('difference','')}</td></tr>" for r in result["differences"])
-    return page(f"<h1>核对结果</h1><p>差异数：{len(result['differences'])}</p><table><tr><th>键</th><th>状态</th><th>列</th><th>差值</th></tr>{rows}</table>")
+    return page(f"<h1>核对结果</h1><p>差异数：{len(result['differences'])}</p><a href='/web/reports'>导出本次报告</a><table><tr><th data-sort>键</th><th data-sort>状态</th><th data-sort>列</th><th data-sort>差值</th></tr>{rows}</table>")
 
 @app.get("/web/history", response_class=HTMLResponse)
-def web_history():
+def web_history(from_date: str | None = None, to_date: str | None = None):
     items = load_history()
+    if from_date: items = [item for item in items if item.get("created_at", "")[:10] >= from_date]
+    if to_date: items = [item for item in items if item.get("created_at", "")[:10] <= to_date]
     rows = "".join(f"<tr><td>{item.get('created_at','')}</td><td>{item.get('summary',{}).get('differences',0)}</td></tr>" for item in items)
-    return page(f"<h1>历史记录</h1><table><tr><th>时间</th><th>差异数</th></tr>{rows}</table>")
+    return page(f"<h1>历史记录</h1><form><input type='date' name='from_date'><input type='date' name='to_date'><button>筛选</button></form><table><tr><th>时间</th><th>差异数</th></tr>{rows}</table>")
 
 @app.get("/web/reports", response_class=HTMLResponse)
 def web_reports():

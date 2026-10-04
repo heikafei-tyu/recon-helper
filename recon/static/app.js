@@ -1,0 +1,1 @@
+document.querySelectorAll('th[data-sort]').forEach((head)=>head.addEventListener('click',()=>{const table=head.closest('table'), index=head.cellIndex, rows=[...table.tBodies[0].rows]; rows.sort((a,b)=>String(a.cells[index].textContent).localeCompare(String(b.cells[index].textContent),undefined,{numeric:true})); rows.forEach(row=>table.tBodies[0].appendChild(row));}));
