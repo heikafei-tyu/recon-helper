@@ -1,0 +1,5 @@
+quality:
+  threshold: 70
+keys: [id]
+expected_types:
+  amount: number

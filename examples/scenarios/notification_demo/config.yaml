@@ -1,0 +1,3 @@
+enabled: true
+webhook_url: https://hooks.example.test/reconciliation
+force_on_fatal: true
