@@ -16,6 +16,13 @@ def test_plan_cli_runs_config(tmp_path, capsys):
     assert payload["execution"]["daily"]["status"] == "success"
 
 
+def test_plan_cli_explicit_run_form(tmp_path, capsys):
+    plan = tmp_path / "plan.yaml"
+    plan.write_text("tasks: []\n", encoding="utf-8")
+    assert main(["plan", "run", str(plan)]) == 2
+    assert "ERROR" in capsys.readouterr().err
+
+
 def test_plan_cli_retries_invalid_rule_and_fail_fast(tmp_path, capsys):
     plan = tmp_path / "plan.yaml"
     plan.write_text("tasks:\n  - name: broken\n    rules: missing.yaml\n  - name: skipped\n    rules: missing2.yaml\n", encoding="utf-8")

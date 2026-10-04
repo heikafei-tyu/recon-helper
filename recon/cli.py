@@ -68,7 +68,8 @@ def main(argv=None):
     stop_schedule = schedule_commands.add_parser("stop"); stop_schedule.add_argument("name")
     schedule_commands.add_parser("list")
     plan = commands.add_parser("plan", help="按依赖计划执行多个规则")
-    plan.add_argument("config", help="YAML 计划文件")
+    plan.add_argument("action_or_config", help="run 或 YAML 计划文件")
+    plan.add_argument("config", nargs="?", help="使用 run 时的 YAML 计划文件")
     plan.add_argument("--attempts", type=int, default=1)
     plan.add_argument("--delay", type=float, default=0.0)
     plan.add_argument("--timeout", type=float)
@@ -84,7 +85,8 @@ def main(argv=None):
         elif args.command == "history":
             result = compare_history(args.dir, *args.compare) if args.compare else {"history": load_history(args.dir)}
         elif args.command == "plan":
-            source = Path(args.config)
+            config_name = args.config if args.action_or_config == "run" else args.action_or_config
+            source = Path(config_name)
             config = yaml.safe_load(source.read_text(encoding="utf-8-sig"))
             items = config.get("tasks") if isinstance(config, dict) else config
             execution_plan = plan_from_config(items, source.parent)
