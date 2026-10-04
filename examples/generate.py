@@ -1,4 +1,5 @@
 """生成完全虚构的跨格式读取示例。"""
+
 import csv
 import json
 from pathlib import Path
@@ -16,7 +17,9 @@ def generate(directory):
             writer = csv.writer(stream)
             writer.writerow(columns)
             writer.writerows(rows)
-    (directory / "orders.json").write_text(json.dumps([dict(zip(columns, row)) for row in rows], ensure_ascii=False), encoding="utf-8")
+    (directory / "orders.json").write_text(
+        json.dumps([dict(zip(columns, row)) for row in rows], ensure_ascii=False), encoding="utf-8"
+    )
     book = Workbook()
     sheet = book.active
     sheet.append(columns)

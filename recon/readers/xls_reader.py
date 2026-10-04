@@ -1,5 +1,3 @@
-from datetime import datetime, timedelta
-
 from ..errors import ReadError
 from ..model import Table
 
@@ -7,6 +5,7 @@ from ..model import Table
 def read(path, encoding=None):
     try:
         import xlrd
+
         book = xlrd.open_workbook(path)
         sheet = book.sheet_by_index(0)
         header = sheet.row_values(0)

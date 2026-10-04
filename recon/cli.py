@@ -4,24 +4,27 @@ import sys
 from pathlib import Path
 from zipfile import BadZipFile
 
+import yaml
+
 from .benchmark import benchmark, benchmark_generated
 from .config import load_config
+from .doctor import doctor
+from .dryrun import dry_run
 from .engine import run_rules
+from .execution import RetryPolicy
 from .history import compare_history, load_history
 from .init_wizard import run_wizard
+from .notify import NotificationSettings, notify_result
+from .operations import history_summary, review_queue, run_batch
+from .plan import plan_from_config
 from .profiles import list_profiles, show_profile, use_profile
 from .readers import read_table
 from .report import create_report
-from .scheduler import list_jobs, run_logs, start as schedule_start, stop as schedule_stop
-from .plan import plan_from_config
-from .execution import RetryPolicy
 from .rules_diff import diff_rules
-from .notify import NotificationSettings, notify_result
+from .scheduler import list_jobs, run_logs
+from .scheduler import start as schedule_start
+from .scheduler import stop as schedule_stop
 from .store import ResultStore
-from .dryrun import dry_run
-from .operations import run_batch, history_summary, review_queue, export_history
-from .doctor import doctor
-import yaml
 
 
 def main(argv=None):
@@ -76,10 +79,16 @@ def main(argv=None):
     config_commands.add_parser("show")
     schedule = commands.add_parser("schedule", help="管理定时核对任务")
     schedule_commands = schedule.add_subparsers(dest="schedule_command", required=True)
-    start_schedule = schedule_commands.add_parser("start"); start_schedule.add_argument("name"); start_schedule.add_argument("rules"); start_schedule.add_argument("--at", default="00:00"); start_schedule.add_argument("--interval", type=float)
-    stop_schedule = schedule_commands.add_parser("stop"); stop_schedule.add_argument("name")
+    start_schedule = schedule_commands.add_parser("start")
+    start_schedule.add_argument("name")
+    start_schedule.add_argument("rules")
+    start_schedule.add_argument("--at", default="00:00")
+    start_schedule.add_argument("--interval", type=float)
+    stop_schedule = schedule_commands.add_parser("stop")
+    stop_schedule.add_argument("name")
     schedule_commands.add_parser("list")
-    logs_schedule = schedule_commands.add_parser("logs"); logs_schedule.add_argument("--limit", type=int, default=20)
+    logs_schedule = schedule_commands.add_parser("logs")
+    logs_schedule.add_argument("--limit", type=int, default=20)
     plan = commands.add_parser("plan", help="按依赖计划执行多个规则")
     plan.add_argument("action_or_config", help="run 或 YAML 计划文件")
     plan.add_argument("config", nargs="?", help="使用 run 时的 YAML 计划文件")
@@ -113,7 +122,15 @@ def main(argv=None):
         elif args.command == "config":
             result = load_config()
         elif args.command == "schedule":
-            result = schedule_start(args.name, args.rules, args.at, args.interval) if args.schedule_command == "start" else schedule_stop(args.name) if args.schedule_command == "stop" else {"jobs": list_jobs()} if args.schedule_command == "list" else run_logs(args.limit)
+            result = (
+                schedule_start(args.name, args.rules, args.at, args.interval)
+                if args.schedule_command == "start"
+                else schedule_stop(args.name)
+                if args.schedule_command == "stop"
+                else {"jobs": list_jobs()}
+                if args.schedule_command == "list"
+                else run_logs(args.limit)
+            )
         elif args.command == "history":
             result = compare_history(args.dir, *args.compare) if args.compare else {"history": load_history(args.dir)}
         elif args.command == "plan":
@@ -151,15 +168,25 @@ def main(argv=None):
         elif args.command == "run":
             result = run_rules(args.rules, timeout=args.timeout, progress=args.progress)
             if any(getattr(args, name, None) for name in ("notify_webhook", "smtp_host", "smtp_to")):
-                result["notification"] = notify_result(result, NotificationSettings(args.notify_webhook, args.smtp_host, args.smtp_port, args.smtp_to, args.smtp_from, enabled=True))
+                result["notification"] = notify_result(
+                    result,
+                    NotificationSettings(
+                        args.notify_webhook, args.smtp_host, args.smtp_port, args.smtp_to, args.smtp_from, enabled=True
+                    ),
+                )
         elif args.command == "bench":
-            result = benchmark_generated(timeout=args.timeout, progress=args.progress) if args.file is None else benchmark(args.file, args.key, not args.no_duplicate_check, args.timeout, args.progress)
+            result = (
+                benchmark_generated(timeout=args.timeout, progress=args.progress)
+                if args.file is None
+                else benchmark(args.file, args.key, not args.no_duplicate_check, args.timeout, args.progress)
+            )
             if args.json_out:
                 Path(args.json_out).parent.mkdir(parents=True, exist_ok=True)
                 Path(args.json_out).write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
         elif args.command == "report":
             if args.html:
                 from .report import create_html_report
+
                 result = create_html_report(args.rules, args.html)
             else:
                 result = create_report(args.rules, args.out, args.incremental, args.force, args.template)
@@ -173,6 +200,14 @@ def main(argv=None):
         print(f"RECON_TIMEOUT: {exc}", file=sys.stderr)
         return 2
     except (ValueError, OSError, BadZipFile) as exc:
-        code = "RECON_READ_ERROR" if args.command == "read" else "RECON_RULE_ERROR" if args.command == "run" else "RECON_REPORT_ERROR" if args.command == "report" else "RECON_BENCH_ERROR"
+        code = (
+            "RECON_READ_ERROR"
+            if args.command == "read"
+            else "RECON_RULE_ERROR"
+            if args.command == "run"
+            else "RECON_REPORT_ERROR"
+            if args.command == "report"
+            else "RECON_BENCH_ERROR"
+        )
         print(f"{code}: {exc}", file=sys.stderr)
         return 2

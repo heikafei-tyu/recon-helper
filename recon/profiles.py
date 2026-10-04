@@ -1,10 +1,15 @@
 """可复用的规则配置 Profile。"""
+
 import json
 from pathlib import Path
 
 PROFILES = {
     "strict": {"name": "严格模式", "tolerance": {"default": {"absolute": "0"}}, "rules": {"allow_missing": False}},
-    "宽松": {"name": "宽松模式", "tolerance": {"default": {"absolute": "0.01", "relative": "0.005"}}, "rules": {"allow_missing": True}},
+    "宽松": {
+        "name": "宽松模式",
+        "tolerance": {"default": {"absolute": "0.01", "relative": "0.005"}},
+        "rules": {"allow_missing": True},
+    },
 }
 
 

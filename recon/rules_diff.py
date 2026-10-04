@@ -1,6 +1,8 @@
 """Compare two YAML reconciliation rule versions."""
+
 from pathlib import Path
 from typing import Any
+
 import yaml
 
 
@@ -34,5 +36,16 @@ def diff_rules(old_path, new_path):
     before, after = dict(_flatten(old)), dict(_flatten(new))
     added = [{"path": key, "value": after[key]} for key in sorted(set(after) - set(before))]
     removed = [{"path": key, "value": before[key]} for key in sorted(set(before) - set(after))]
-    changed = [{"path": key, "old": before[key], "new": after[key]} for key in sorted(set(before) & set(after)) if before[key] != after[key]]
-    return {"old": str(old_path), "new": str(new_path), "added": added, "removed": removed, "changed": changed, "summary": {"added": len(added), "removed": len(removed), "changed": len(changed)}}
+    changed = [
+        {"path": key, "old": before[key], "new": after[key]}
+        for key in sorted(set(before) & set(after))
+        if before[key] != after[key]
+    ]
+    return {
+        "old": str(old_path),
+        "new": str(new_path),
+        "added": added,
+        "removed": removed,
+        "changed": changed,
+        "summary": {"added": len(added), "removed": len(removed), "changed": len(changed)},
+    }

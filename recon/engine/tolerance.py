@@ -1,4 +1,5 @@
 """独立的 Decimal 容差判断。"""
+
 from decimal import Decimal
 
 

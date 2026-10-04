@@ -27,7 +27,9 @@ def test_equivalent_numbers_and_missing_rows(tmp_path):
 
 def test_column_tolerance_and_rounding(tmp_path):
     rules = "left: left.csv\nright: right.csv\nkey: id\ncolumns: [amount]\ntolerance:\n  amount:\n    absolute: '0.01'\n    round: 2\n"
-    path = setup_rule(tmp_path, "id,amount\na,10.00\nb,10.00\nc,10.00\n", "id,amount\na,10.01\nb,10.02\nc,11.00\n", rules)
+    path = setup_rule(
+        tmp_path, "id,amount\na,10.00\nb,10.00\nc,10.00\n", "id,amount\na,10.01\nb,10.02\nc,11.00\n", rules
+    )
     results = run_rules(path)["differences"]
     assert [item["status"] for item in results] == ["within_tolerance", "mismatch", "mismatch"]
 
@@ -89,7 +91,9 @@ def test_text_normalization_and_null_policy(tmp_path):
 
 def test_key_mapping_between_tables(tmp_path):
     rules = "left: left.csv\nright: right.csv\nkeys: [customer, date]\nkey_mapping:\n  left: [customer, date]\n  right: [client, trade_date]\ncolumns:\n  - left: amount\n    right: total\n"
-    path = setup_rule(tmp_path, "customer,date,amount\na,2026-01-01,10\n", "client,trade_date,total\na,2026-01-01,10\n", rules)
+    path = setup_rule(
+        tmp_path, "customer,date,amount\na,2026-01-01,10\n", "client,trade_date,total\na,2026-01-01,10\n", rules
+    )
     assert run_rules(path)["differences"] == []
 
 
@@ -101,14 +105,24 @@ def test_rule_filters_and_field_transforms(tmp_path):
 
 def test_composite_key_and_field_mapping(tmp_path):
     rules = "left: left.csv\nright: right.csv\nkeys: [customer, date]\ncolumns:\n  - left: amount\n    right: total\n"
-    path = setup_rule(tmp_path, "customer,date,amount\na,2026-01-01,10\n", "customer,date,total\na,2026-01-01,12\n", rules)
+    path = setup_rule(
+        tmp_path, "customer,date,amount\na,2026-01-01,10\n", "customer,date,total\na,2026-01-01,12\n", rules
+    )
     item = run_rules(path)["differences"][0]
     assert item["key"] == ["a", "2026-01-01"] or item["key"] == ("a", "2026-01-01")
     assert item["left_value"] == "10"
     assert item["right_value"] == "12"
 
 
-@pytest.mark.parametrize("rules", ["[]", "left: left.csv", "left: left.csv\nright: right.csv\nkey: id\ncolumns: [amount, amount]", "left: [x]\nright: right.csv\nkey: id\ncolumns: [amount]"])
+@pytest.mark.parametrize(
+    "rules",
+    [
+        "[]",
+        "left: left.csv",
+        "left: left.csv\nright: right.csv\nkey: id\ncolumns: [amount, amount]",
+        "left: [x]\nright: right.csv\nkey: id\ncolumns: [amount]",
+    ],
+)
 def test_invalid_rules(tmp_path, rules):
     path = setup_rule(tmp_path, "id,amount\na,1\n", "id,amount\na,1\n", rules)
     with pytest.raises(ValueError):

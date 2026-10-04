@@ -11,4 +11,5 @@ def test_help_and_missing_command(capsys):
 
 def test_module_package_metadata():
     import recon
+
     assert recon.__name__ == "recon"

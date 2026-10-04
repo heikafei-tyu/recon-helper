@@ -16,7 +16,7 @@ def read(path, widths, columns=None, encoding="utf-8"):
             start = 0
             values = []
             for width in widths:
-                values.append(line[start:start + width].strip() or None)
+                values.append(line[start : start + width].strip() or None)
                 start += width
             rows.append(values)
     except (OSError, UnicodeError) as exc:

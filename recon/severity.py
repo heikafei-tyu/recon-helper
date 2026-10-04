@@ -1,4 +1,8 @@
-LEVELS = {"fatal": {"label": "致命", "exit_code": 2}, "serious": {"label": "严重", "exit_code": 1}, "notice": {"label": "提示", "exit_code": 0}}
+LEVELS = {
+    "fatal": {"label": "致命", "exit_code": 2},
+    "serious": {"label": "严重", "exit_code": 1},
+    "notice": {"label": "提示", "exit_code": 0},
+}
 
 
 def classify(row):

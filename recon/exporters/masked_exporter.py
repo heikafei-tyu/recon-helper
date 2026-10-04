@@ -27,6 +27,7 @@ def mask_rows(rows, columns):
 
 def export_masked_csv(rows, columns, output):
     import csv
+
     path = write_parent(output)
     masked = mask_rows(rows, columns)
     fields = sorted({key for row in masked for key in row})

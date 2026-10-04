@@ -1,5 +1,6 @@
 from datetime import date
 
+
 def check(left, right, rule):
     start = date.fromisoformat(rule["start"])
     end = date.fromisoformat(rule["end"])

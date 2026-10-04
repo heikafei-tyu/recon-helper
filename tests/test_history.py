@@ -9,4 +9,8 @@ def test_snapshot_roundtrip(tmp_path):
     rules = tmp_path / "rules.json"
     rules.write_text(json.dumps({"left": "data.csv", "right": "data.csv"}), encoding="utf-8")
     path = save_snapshot(rules, {"differences": [], "left_rows": 1, "right_rows": 1}, tmp_path / "history")
-    assert path.exists() and len(list_history(tmp_path / "history")) == 1 and load_history(tmp_path / "history")[0]["summary"]["differences"] == 0
+    assert (
+        path.exists()
+        and len(list_history(tmp_path / "history")) == 1
+        and load_history(tmp_path / "history")[0]["summary"]["differences"] == 0
+    )

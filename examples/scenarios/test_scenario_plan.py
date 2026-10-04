@@ -1,6 +1,9 @@
 from pathlib import Path
+
 import yaml
+
 from recon.plan import plan_from_config
+
 
 def test_plan_scenario():
     root = Path(__file__).parent / "plan_demo"

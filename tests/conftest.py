@@ -1,4 +1,5 @@
 """共享测试夹具：给各测试文件提供可复用的样例表格。"""
+
 from __future__ import annotations
 
 import pandas as pd

@@ -2,7 +2,8 @@ from recon.fingerprint_store import FingerprintStore
 
 
 def test_store_and_migrate(tmp_path):
-    manifest = tmp_path / "legacy.json"; manifest.write_text('{"a.csv":"abc"}', encoding="utf-8")
+    manifest = tmp_path / "legacy.json"
+    manifest.write_text('{"a.csv":"abc"}', encoding="utf-8")
     with FingerprintStore(tmp_path / "recon_history.db") as store:
         assert store.migrate_json(manifest) == 1
         assert store.get("a.csv") == "abc"

@@ -1,5 +1,7 @@
 from pathlib import Path
+
 from recon.engine import run_rules
+
 
 def test_tiered_tolerance_scenario():
     result = run_rules(Path(__file__).parent / "tiered_tolerance_demo" / "rules.yaml")

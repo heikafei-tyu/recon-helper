@@ -1,4 +1,5 @@
 """列画像统计。"""
+
 from decimal import Decimal, InvalidOperation
 
 
@@ -16,14 +17,24 @@ def column_profile(rows):
             except (InvalidOperation, ValueError):
                 pass
         kinds = "number" if numbers == [*numbers] and len(numbers) == len(nonempty) and nonempty else "text"
-        output[column] = {"type": kinds, "null_count": len(values) - len(nonempty), "unique_count": len(set(map(str, nonempty))), "mean": str(sum(numbers) / len(numbers)) if numbers else None, "min": str(min(numbers)) if numbers else (min(map(str, nonempty)) if nonempty else None), "max": str(max(numbers)) if numbers else (max(map(str, nonempty)) if nonempty else None)}
+        output[column] = {
+            "type": kinds,
+            "null_count": len(values) - len(nonempty),
+            "unique_count": len(set(map(str, nonempty))),
+            "mean": str(sum(numbers) / len(numbers)) if numbers else None,
+            "min": str(min(numbers)) if numbers else (min(map(str, nonempty)) if nonempty else None),
+            "max": str(max(numbers)) if numbers else (max(map(str, nonempty)) if nonempty else None),
+        }
     return output
+
 
 def profile_column(rows, column):
     return column_profile([{column: row.get(column)} for row in rows]).get(column, {})
 
+
 def numeric_columns(profile):
     return [name for name, data in profile.items() if data.get("type") == "number"]
+
 
 def null_rates(profile, row_count):
     if row_count < 0:

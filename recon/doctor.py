@@ -1,11 +1,12 @@
 """Runtime health checks exposed by ``recon doctor``."""
+
 import importlib
 import importlib.metadata
+import locale
 import shutil
 import sqlite3
 import sys
 from pathlib import Path
-import locale
 
 from .config import load_config
 

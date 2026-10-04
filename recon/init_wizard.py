@@ -4,7 +4,6 @@ from pathlib import Path
 
 import yaml
 
-
 RULE_TYPES = ("row_compare", "total_check", "chain_check", "period_check")
 
 
@@ -38,17 +37,47 @@ def build_rules(answers):
         required = ("detail", "summary")
         if any(not answers.get(name) for name in required) or not _columns(answers.get("columns", "")):
             raise ValueError("total_check 需要明细、汇总和列名")
-        return {"checks": [{"type": kind, "detail": answers["detail"], "summary": answers["summary"], "columns": _columns(answers["columns"])}]}
+        return {
+            "checks": [
+                {
+                    "type": kind,
+                    "detail": answers["detail"],
+                    "summary": answers["summary"],
+                    "columns": _columns(answers["columns"]),
+                }
+            ]
+        }
     if kind == "chain_check":
         tables = _columns(answers.get("tables", ""))
         if len(tables) < 2 or not answers.get("start_column") or not answers.get("end_column"):
             raise ValueError("chain_check 至少需要两张表、期初列和期末列")
-        return {"checks": [{"type": kind, "tables": tables, "start_column": answers["start_column"], "end_column": answers["end_column"]}]}
+        return {
+            "checks": [
+                {
+                    "type": kind,
+                    "tables": tables,
+                    "start_column": answers["start_column"],
+                    "end_column": answers["end_column"],
+                }
+            ]
+        }
     required = ("file", "period_column", "value_column", "current", "previous")
     if any(not answers.get(name) for name in required):
         raise ValueError("period_check 需要文件、期间列、数值列、当前期和上一期")
     threshold = str(answers.get("threshold", "0.3"))
-    return {"checks": [{"type": kind, "file": answers["file"], "period_column": answers["period_column"], "value_column": answers["value_column"], "current": answers["current"], "previous": answers["previous"], "threshold": threshold}]}
+    return {
+        "checks": [
+            {
+                "type": kind,
+                "file": answers["file"],
+                "period_column": answers["period_column"],
+                "value_column": answers["value_column"],
+                "current": answers["current"],
+                "previous": answers["previous"],
+                "threshold": threshold,
+            }
+        ]
+    }
 
 
 def _ask(input_fn, print_fn, label, history):
@@ -62,7 +91,13 @@ def run_wizard(output="rules.yaml", input_fn=input, print_fn=print):
     """Run the wizard; ``input_fn`` and ``print_fn`` make it testable."""
     history = []
     answers = {}
-    prompts = [("left", "左表文件名: "), ("right", "右表文件名: "), ("key", "键列: "), ("columns", "比较列（逗号分隔）: "), ("tolerance", "绝对容差: ")]
+    prompts = [
+        ("left", "左表文件名: "),
+        ("right", "右表文件名: "),
+        ("key", "键列: "),
+        ("columns", "比较列（逗号分隔）: "),
+        ("tolerance", "绝对容差: "),
+    ]
     index = 0
     while index < len(prompts):
         name, label = prompts[index]
@@ -91,7 +126,14 @@ def run_wizard(output="rules.yaml", input_fn=input, print_fn=print):
         answers["start_column"] = input_fn("期初列: ").strip()
         answers["end_column"] = input_fn("期末列: ").strip()
     elif answers["type"] == "period_check":
-        for name, label in (("file", "数据文件: "), ("period_column", "期间列: "), ("value_column", "数值列: "), ("current", "当前期间: "), ("previous", "上一期间: "), ("threshold", "波动比例（默认 0.3）: ")):
+        for name, label in (
+            ("file", "数据文件: "),
+            ("period_column", "期间列: "),
+            ("value_column", "数值列: "),
+            ("current", "当前期间: "),
+            ("previous", "上一期间: "),
+            ("threshold", "波动比例（默认 0.3）: "),
+        ):
             answers[name] = input_fn(label).strip() or ("0.3" if name == "threshold" else "")
     rules = build_rules(answers)
     preview = yaml.safe_dump(rules, allow_unicode=True, sort_keys=False)

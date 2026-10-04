@@ -23,6 +23,7 @@ def test_report_and_incremental_skip(tmp_path):
     assert len(metrics["left_sha256"]) == 64
     assert create_report(rules, output, incremental=True)["skipped"] is True
 
+
 def test_report_refuses_overwrite_without_force(tmp_path):
     (tmp_path / "orders.csv").write_text("id,amount\na,1\n", encoding="utf-8")
     (tmp_path / "bank.csv").write_text("id,amount\na,2\n", encoding="utf-8")
@@ -31,5 +32,6 @@ def test_report_refuses_overwrite_without_force(tmp_path):
     output = tmp_path / "report.xlsx"
     create_report(rules, output)
     import pytest
+
     with pytest.raises(ValueError, match="--force"):
         create_report(rules, output)

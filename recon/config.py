@@ -1,8 +1,12 @@
 """Project-level .reconrc configuration."""
-from pathlib import Path
+
 from dataclasses import dataclass
+from pathlib import Path
+
 import yaml
+
 from .errors import RuleConfigError
+
 
 @dataclass(frozen=True)
 class RuleConfig:
@@ -10,6 +14,7 @@ class RuleConfig:
     left: str
     right: str
     raw: dict
+
 
 def load_rule_config(filename):
     source = Path(filename)
@@ -27,7 +32,14 @@ def load_rule_config(filename):
                 raise RuleConfigError(f"{name} 必须是非空路径")
     return RuleConfig(source, raw.get("left", ""), raw.get("right", ""), raw)
 
-DEFAULTS = {"default_tolerance": "0", "parallel_workers": None, "output_dir": "output", "report_template": "detailed", "api_key": None}
+
+DEFAULTS = {
+    "default_tolerance": "0",
+    "parallel_workers": None,
+    "output_dir": "output",
+    "report_template": "detailed",
+    "api_key": None,
+}
 
 
 def load_config(start=None):

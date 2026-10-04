@@ -1,5 +1,7 @@
 from pathlib import Path
+
 from recon.rules_diff import diff_rules
+
 
 def test_rules_diff_scenario():
     root = Path(__file__).parent / "rules_diff_demo"

@@ -11,6 +11,7 @@ def check(left, right, rule):
 
 ```python
 from recon.plugins import discover_plugins, run_plugin
+
 print(discover_plugins())
 run_plugin("amount_range", [10], [12], {"limit": 1})
 ```

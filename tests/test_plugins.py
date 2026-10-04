@@ -11,7 +11,9 @@ def test_discover_and_run_example_plugins():
 
 
 def test_custom_plugin_discovery(tmp_path):
-    (tmp_path / "custom.py").write_text("def check(left, right, rule):\n    return [{'status': 'ok'}]\n", encoding="utf-8")
+    (tmp_path / "custom.py").write_text(
+        "def check(left, right, rule):\n    return [{'status': 'ok'}]\n", encoding="utf-8"
+    )
     assert run_plugin("custom", [], [], directory=tmp_path) == [{"status": "ok"}]
 
 

@@ -1,4 +1,3 @@
-import json
 import pytest
 
 httpx = pytest.importorskip("httpx")
@@ -20,5 +19,12 @@ async def test_web_reconcile_form():
     transport = httpx.ASGITransport(app=app)
     rules = "key: id\ncolumns: [amount]\n"
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.post("/web/reconcile", files={"left": ("l.csv", b"id,amount\na,1\n"), "right": ("r.csv", b"id,amount\na,1\n"), "rules": ("rules.yaml", rules.encode())})
+        response = await client.post(
+            "/web/reconcile",
+            files={
+                "left": ("l.csv", b"id,amount\na,1\n"),
+                "right": ("r.csv", b"id,amount\na,1\n"),
+                "rules": ("rules.yaml", rules.encode()),
+            },
+        )
     assert response.status_code == 200 and "差异数" in response.text

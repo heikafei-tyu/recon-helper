@@ -3,6 +3,7 @@
 注意：precheck.main() 的"测试全绿"检查会调用 pytest 子进程，
 在 pytest 内直接调用会无限递归，因此这里用假 runner 替换 subprocess.run。
 """
+
 from __future__ import annotations
 
 import sys

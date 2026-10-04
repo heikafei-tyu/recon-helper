@@ -13,7 +13,29 @@ def write_rule(tmp_path, **changes):
     return path
 
 
-@pytest.mark.parametrize("changes,fragment", [({}, None), ({"left": ""}, "left"), ({"columns": "amount"}, "columns"), ({"key": 2}, "key"), ({"keys": ["id", "id"]}, "重复"), ({"left_sheet": ""}, "left_sheet"), ({"columns": [1]}, "columns[0]"), ({"tolerance": []}, "tolerance"), ({"tolerance": {"amount": {"absolute": -1}}}, "不能为负"), ({"tolerance": {"amount": {"relative": "x"}}}, "必须是数字"), ({"tolerance": {"amount": {"priority": -1}}}, "priority"), ({"tolerance": {"amount": {"rounding": {"mode": "bad"}}}}, "rounding"), ({"tolerance": {"amount": {"rounding": {"digits": -1}}}}, "digits"), ({"filters": []}, "filters"), ({"transforms": []}, "transforms"), ({"checks": {"type": "x"}}, "checks"), ({"checks": [{"type": "bad"}]}, "未知"), ({"checks": [{"type": "chain_check", "tables": ["a", "a"]}]}, "循环")])
+@pytest.mark.parametrize(
+    "changes,fragment",
+    [
+        ({}, None),
+        ({"left": ""}, "left"),
+        ({"columns": "amount"}, "columns"),
+        ({"key": 2}, "key"),
+        ({"keys": ["id", "id"]}, "重复"),
+        ({"left_sheet": ""}, "left_sheet"),
+        ({"columns": [1]}, "columns[0]"),
+        ({"tolerance": []}, "tolerance"),
+        ({"tolerance": {"amount": {"absolute": -1}}}, "不能为负"),
+        ({"tolerance": {"amount": {"relative": "x"}}}, "必须是数字"),
+        ({"tolerance": {"amount": {"priority": -1}}}, "priority"),
+        ({"tolerance": {"amount": {"rounding": {"mode": "bad"}}}}, "rounding"),
+        ({"tolerance": {"amount": {"rounding": {"digits": -1}}}}, "digits"),
+        ({"filters": []}, "filters"),
+        ({"transforms": []}, "transforms"),
+        ({"checks": {"type": "x"}}, "checks"),
+        ({"checks": [{"type": "bad"}]}, "未知"),
+        ({"checks": [{"type": "chain_check", "tables": ["a", "a"]}]}, "循环"),
+    ],
+)
 def test_validator_errors(tmp_path, changes, fragment):
     path = write_rule(tmp_path, **changes)
     errors = validate_rules(path)

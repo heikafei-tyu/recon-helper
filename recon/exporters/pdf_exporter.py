@@ -14,6 +14,14 @@ def export_pdf(result, output):
     path = write_parent(output)
     document = SimpleDocTemplate(str(path), pagesize=A4)
     table = Table(data, repeatRows=1)
-    table.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#D9EAF7")), ("GRID", (0, 0), (-1, -1), 0.25, colors.grey), ("FONTSIZE", (0, 0), (-1, -1), 7)]))
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#D9EAF7")),
+                ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
+                ("FONTSIZE", (0, 0), (-1, -1), 7),
+            ]
+        )
+    )
     document.build([table])
     return {"output": str(path), "rows": len(rows), "format": "pdf"}

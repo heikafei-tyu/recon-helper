@@ -2,6 +2,7 @@
 
 用法: python scripts/precheck.py
 """
+
 from __future__ import annotations
 
 import os
@@ -19,7 +20,9 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def git(*args: str) -> str:
-    return subprocess.run(["git", *args], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=ROOT).stdout
+    return subprocess.run(
+        ["git", *args], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=ROOT
+    ).stdout
 
 
 def main() -> int:
@@ -34,24 +37,62 @@ def main() -> int:
     check("代码文件 >= 100", len(py_files) >= 100, f"当前 {len(py_files)}")
 
     readme = ROOT / "README.md"
-    sections = ["是什么", "安装", "运行"] if readme.exists() else []
+    ["是什么", "安装", "运行"] if readme.exists() else []
     ok = readme.exists() and all(s in readme.read_text(encoding="utf-8") for s in ["安装", "运行"])
-    check("README 基础完整（是什么/安装/运行）", ok, f"缺少: {[s for s in ['安装', '运行'] if s not in (readme.read_text(encoding='utf-8') if readme.exists() else '')]}")
+    check(
+        "README 基础完整（是什么/安装/运行）",
+        ok,
+        f"缺少: {[s for s in ['安装', '运行'] if s not in (readme.read_text(encoding='utf-8') if readme.exists() else '')]}",
+    )
 
     check("requirements.txt 存在", (ROOT / "requirements.txt").exists())
     test_command = [sys.executable, "-m", "pytest", "-q"]
     try:
         import pytest  # noqa: F401
     except ImportError:
-        test_command = ["uv", "run", "--offline", "--with", "pytest", "--with", "pyyaml", "--with", "openpyxl", "--with", "pandas", "--with", "reportlab", "--with", "matplotlib", "--with", "fastapi", "--with", "httpx", "--with", "python-multipart", "pytest", "-q"]
+        test_command = [
+            "uv",
+            "run",
+            "--offline",
+            "--with",
+            "pytest",
+            "--with",
+            "pyyaml",
+            "--with",
+            "openpyxl",
+            "--with",
+            "pandas",
+            "--with",
+            "reportlab",
+            "--with",
+            "matplotlib",
+            "--with",
+            "fastapi",
+            "--with",
+            "httpx",
+            "--with",
+            "python-multipart",
+            "pytest",
+            "-q",
+        ]
     if "PYTEST_CURRENT_TEST" in os.environ:
         check("测试全绿", True, "（pytest 子进程内跳过递归测试检查）")
     else:
-        test_run = subprocess.run(test_command, cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace")
-        check("测试全绿", test_run.returncode == 0, test_run.stdout.splitlines()[-1] if test_run.stdout else test_run.stderr[-200:])
+        test_run = subprocess.run(
+            test_command, cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace"
+        )
+        check(
+            "测试全绿",
+            test_run.returncode == 0,
+            test_run.stdout.splitlines()[-1] if test_run.stdout else test_run.stderr[-200:],
+        )
     features = ["读取", "容差", "报告", "历史", "Web", "调度"]
     readme_text = readme.read_text(encoding="utf-8") if readme.exists() else ""
-    check("README 特性清单", all(item in readme_text for item in features), f"缺少: {[item for item in features if item not in readme_text]}")
+    check(
+        "README 特性清单",
+        all(item in readme_text for item in features),
+        f"缺少: {[item for item in features if item not in readme_text]}",
+    )
 
     secrets = []
     for p in git("ls-files").splitlines():

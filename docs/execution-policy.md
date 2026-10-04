@@ -28,10 +28,14 @@ report = execute("monthly-reconcile", run_monthly, policy)
 `fail_fast=True` 时第一个失败会停止后续任务；默认会继续执行剩余任务。
 
 ```python
-reports = execute_many([
-    ("sales", lambda: run_rules("sales.yaml")),
-    ("cash", lambda: run_rules("cash.yaml")),
-], RetryPolicy(attempts=2), fail_fast=False)
+reports = execute_many(
+    [
+        ("sales", lambda: run_rules("sales.yaml")),
+        ("cash", lambda: run_rules("cash.yaml")),
+    ],
+    RetryPolicy(attempts=2),
+    fail_fast=False,
+)
 ```
 
 动作抛出的异常不会向外传播，而会写入报告的 `error` 和对应事件，适合

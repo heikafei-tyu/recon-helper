@@ -3,9 +3,11 @@
 该模块不绑定具体的核对函数，计划执行器和定时调度器都可以用同一套
 策略处理瞬时失败。事件使用普通数据类，便于写入日志或持久层。
 """
+
 from __future__ import annotations
 
-from concurrent.futures import Future, ThreadPoolExecutor, TimeoutError as FutureTimeout
+from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeout
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from time import perf_counter
@@ -57,8 +59,12 @@ def _timestamp() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def execute(task: str, action: Callable[[], Any], policy: RetryPolicy | None = None,
-            sleep: Callable[[float], None] | None = None) -> ExecutionReport:
+def execute(
+    task: str,
+    action: Callable[[], Any],
+    policy: RetryPolicy | None = None,
+    sleep: Callable[[float], None] | None = None,
+) -> ExecutionReport:
     """执行一个动作并返回完整报告。
 
     超时通过独立线程实现，超时后线程仍可能在后台收尾，因此调用方不应
@@ -94,8 +100,9 @@ def execute(task: str, action: Callable[[], Any], policy: RetryPolicy | None = N
     return ExecutionReport(task, "failed", policy.attempts, error=last_error, events=events)
 
 
-def execute_many(tasks: Iterable[tuple[str, Callable[[], Any]]], policy: RetryPolicy | None = None,
-                 fail_fast: bool = False) -> list[ExecutionReport]:
+def execute_many(
+    tasks: Iterable[tuple[str, Callable[[], Any]]], policy: RetryPolicy | None = None, fail_fast: bool = False
+) -> list[ExecutionReport]:
     """按给定顺序执行多个动作，可选择首个失败即停止。"""
     reports: list[ExecutionReport] = []
     for name, action in tasks:

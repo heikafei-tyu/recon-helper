@@ -16,11 +16,13 @@ def read(path, encoding=None, sheet_name=None, sheet_index=0, skip_rows=0):
                 sheet = book.worksheets[sheet_index]
             except IndexError as exc:
                 raise ReadError(f"工作表序号不存在：{sheet_index}") from exc
+
         def records():
             for cells in sheet.iter_rows():
                 if any(cell.data_type == "f" for cell in cells):
                     raise ReadError("XLSX 包含公式，请先转为已核验的值")
                 yield [cell.value for cell in cells]
+
         rows = records()
         for _ in range(skip_rows):
             next(rows, None)
@@ -39,11 +41,13 @@ def read_sheets(path):
     try:
         result = {}
         for sheet in book.worksheets:
+
             def records():
                 for cells in sheet.iter_rows():
                     if any(cell.data_type == "f" for cell in cells):
                         raise ReadError("XLSX 包含公式，请先转为已核验的值")
                     yield [cell.value for cell in cells]
+
             rows = records()
             header = next(rows, None)
             if header is not None:

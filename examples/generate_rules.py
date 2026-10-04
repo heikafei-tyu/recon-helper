@@ -2,6 +2,7 @@
 
 用法: python examples/generate_rules.py --scenario salary --out rules.yaml
 """
+
 from __future__ import annotations
 
 import argparse

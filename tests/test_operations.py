@@ -1,6 +1,7 @@
 import json
-from pathlib import Path
+
 import pytest
+
 from recon.operations import export_history, history_summary, review_queue, run_batch
 from recon.store import ResultStore
 
@@ -53,4 +54,5 @@ def test_export_history(tmp_path):
 
 @pytest.mark.parametrize("limit", [0, -1, 10001])
 def test_history_summary_rejects_bad_limit(tmp_path, limit):
-    with pytest.raises(ValueError): history_summary(tmp_path / "history.db", limit)
+    with pytest.raises(ValueError):
+        history_summary(tmp_path / "history.db", limit)

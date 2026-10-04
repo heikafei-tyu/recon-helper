@@ -1,4 +1,5 @@
 """YAML 对账规则的结构、引用和业务约束校验。"""
+
 from pathlib import Path
 
 import yaml
@@ -48,7 +49,7 @@ def validate_rules(filename):
     tolerance = raw.get("tolerance", {})
     if tolerance is not None and not isinstance(tolerance, dict):
         errors.append("tolerance 必须是对象")
-    for name, configured in (tolerance.items() if isinstance(tolerance, dict) else []):
+    for name, configured in tolerance.items() if isinstance(tolerance, dict) else []:
         rules = configured if isinstance(configured, list) else [configured]
         if not all(isinstance(item, dict) for item in rules):
             errors.append(f"tolerance.{name} 必须是对象或对象列表")
@@ -67,10 +68,14 @@ def validate_rules(filename):
                         try:
                             absolute = float(tier["absolute"])
                             upper = None if tier.get("up_to") is None else float(tier["up_to"])
-                            if absolute < 0: errors.append(f"tolerance.{name}.tiers[{index}].absolute 不能为负")
-                            if upper is not None and upper <= 0: errors.append(f"tolerance.{name}.tiers[{index}].up_to 必须为正数")
-                            if previous is not None and upper is not None and upper <= previous: errors.append(f"tolerance.{name}.tiers 区间重叠或金额倒挂")
-                            if previous is not None and upper is None and index != len(tiers) - 1: errors.append(f"tolerance.{name}.tiers 无上限档位必须放在最后")
+                            if absolute < 0:
+                                errors.append(f"tolerance.{name}.tiers[{index}].absolute 不能为负")
+                            if upper is not None and upper <= 0:
+                                errors.append(f"tolerance.{name}.tiers[{index}].up_to 必须为正数")
+                            if previous is not None and upper is not None and upper <= previous:
+                                errors.append(f"tolerance.{name}.tiers 区间重叠或金额倒挂")
+                            if previous is not None and upper is None and index != len(tiers) - 1:
+                                errors.append(f"tolerance.{name}.tiers 无上限档位必须放在最后")
                             previous = upper if upper is not None else previous
                         except (TypeError, ValueError):
                             errors.append(f"tolerance.{name}.tiers[{index}] 数值格式错误")
@@ -86,9 +91,13 @@ def validate_rules(filename):
             if "priority" in item and (not isinstance(item["priority"], int) or item["priority"] < 0):
                 errors.append(f"tolerance.{name}.priority 必须是非负整数")
             rounding = item.get("rounding")
-            if rounding is not None and (not isinstance(rounding, dict) or rounding.get("mode") not in ("raw", "cents", "decimal")):
+            if rounding is not None and (
+                not isinstance(rounding, dict) or rounding.get("mode") not in ("raw", "cents", "decimal")
+            ):
                 errors.append(f"tolerance.{name}.rounding.mode 非法")
-            if isinstance(rounding, dict) and ("digits" in rounding and (not isinstance(rounding["digits"], int) or rounding["digits"] < 0)):
+            if isinstance(rounding, dict) and (
+                "digits" in rounding and (not isinstance(rounding["digits"], int) or rounding["digits"] < 0)
+            ):
                 errors.append(f"tolerance.{name}.rounding.digits 非法")
     if "filters" in raw and not isinstance(raw["filters"], dict):
         errors.append("filters 必须是对象")

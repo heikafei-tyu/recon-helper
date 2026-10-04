@@ -1,5 +1,7 @@
 import json
+
 import pytest
+
 from recon.cli import main
 from recon.dryrun import dry_run
 

@@ -34,10 +34,18 @@ def compare_aging(current, previous, threshold="0.05"):
     keys = list(dict.fromkeys([*current, *previous]))
     result = {}
     for key in keys:
-        now = Decimal(current.get(key, {}).get("ratio", "0")); old = Decimal(previous.get(key, {}).get("ratio", "0")); change = now - old
+        now = Decimal(current.get(key, {}).get("ratio", "0"))
+        old = Decimal(previous.get(key, {}).get("ratio", "0"))
+        change = now - old
         label = "稳定"
         if abs(change) > limit:
             older_bucket = key.endswith("+") or key.startswith("180") or key.startswith("360")
             label = "账龄恶化" if (older_bucket and change > 0) else "账龄改善" if change < 0 else "账龄恶化"
-        result[key] = {"current_ratio": str(now), "previous_ratio": str(old), "change": str(change).replace("0E-28", "0"), "threshold": str(limit), "assessment": label}
+        result[key] = {
+            "current_ratio": str(now),
+            "previous_ratio": str(old),
+            "change": str(change).replace("0E-28", "0"),
+            "threshold": str(limit),
+            "assessment": label,
+        }
     return result

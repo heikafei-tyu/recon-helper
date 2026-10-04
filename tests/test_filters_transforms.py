@@ -5,7 +5,10 @@ from recon.transforms import transform
 
 
 def test_filters_numeric_and_text():
-    assert matches({"amount": "10", "name": "alpha"}, [{"field": "amount", "op": "gte", "value": 10}, {"field": "name", "op": "contains", "value": "ph"}])
+    assert matches(
+        {"amount": "10", "name": "alpha"},
+        [{"field": "amount", "op": "gte", "value": 10}, {"field": "name", "op": "contains", "value": "ph"}],
+    )
     assert not matches({"amount": "9"}, [{"field": "amount", "op": "gt", "value": 10}])
 
 

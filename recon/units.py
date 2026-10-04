@@ -1,8 +1,16 @@
 """金额单位和日期口径归一化。"""
+
 from datetime import datetime
 from decimal import Decimal
 
-UNITS = {"元": Decimal("1"), "万元": Decimal("10000"), "万": Decimal("10000"), "亿元": Decimal("100000000"), "亿": Decimal("100000000"), "USD": Decimal("1")}
+UNITS = {
+    "元": Decimal("1"),
+    "万元": Decimal("10000"),
+    "万": Decimal("10000"),
+    "亿元": Decimal("100000000"),
+    "亿": Decimal("100000000"),
+    "USD": Decimal("1"),
+}
 
 
 def convert_amount(value, unit="元", target="元", rates=None):

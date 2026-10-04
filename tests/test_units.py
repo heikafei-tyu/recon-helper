@@ -3,7 +3,9 @@ import pytest
 from recon.units import convert_amount, normalize_date
 
 
-@pytest.mark.parametrize("value,unit,target,expected", [(1, "万元", "元", "10000"), (2, "亿", "万元", "20000"), (7.2, "USD", "元", "51.84")])
+@pytest.mark.parametrize(
+    "value,unit,target,expected", [(1, "万元", "元", "10000"), (2, "亿", "万元", "20000"), (7.2, "USD", "元", "51.84")]
+)
 def test_amount_conversion(value, unit, target, expected):
     rates = {"USD": "7.2"} if unit == "USD" else None
     assert str(convert_amount(value, unit, target, rates)) == expected

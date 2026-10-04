@@ -16,6 +16,7 @@
 
 ```python
 from recon.store import ResultStore
+
 with ResultStore("recon_history.db") as store:
     print(store.migrate_json("history"))
 ```

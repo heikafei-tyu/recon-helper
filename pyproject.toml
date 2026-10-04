@@ -19,3 +19,7 @@ recon = "recon.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["recon*"]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*" = ["E402"]
+"tests/*" = ["E402"]

@@ -1,4 +1,5 @@
 """金融报表专用核对规则。"""
+
 from datetime import datetime, timedelta
 from decimal import Decimal
 
@@ -19,7 +20,11 @@ def _required(rule, names):
 
 def total_check(base, rule):
     _required(rule, ("detail", "summary", "columns"))
-    if not isinstance(rule["columns"], list) or not rule["columns"] or not all(isinstance(c, str) and c for c in rule["columns"]):
+    if (
+        not isinstance(rule["columns"], list)
+        or not rule["columns"]
+        or not all(isinstance(c, str) and c for c in rule["columns"])
+    ):
         raise ValueError("total_check.columns 必须是非空字段列表")
     detail = _records(base / rule["detail"])
     summary = _records(base / rule["summary"])
@@ -38,7 +43,15 @@ def total_check(base, rule):
         except ValueError as exc:
             raise ValueError(f"total_check 数字字段 {column} 无法解析") from exc
         if expected is None or actual != expected:
-            result.append({"status": "total_mismatch", "column": column, "detail_total": str(actual), "summary_total": str(expected), "difference": str(actual - expected) if expected is not None else None})
+            result.append(
+                {
+                    "status": "total_mismatch",
+                    "column": column,
+                    "detail_total": str(actual),
+                    "summary_total": str(expected),
+                    "difference": str(actual - expected) if expected is not None else None,
+                }
+            )
     return result
 
 
@@ -71,7 +84,16 @@ def chain_check(base, rule):
         if left_number is None or right_number is None:
             raise ValueError(f"chain_check 数值不能为空：{tables[index]} -> {tables[index + 1]}")
         if left_number != right_number:
-            result.append({"status": "chain_mismatch", "from": tables[index], "to": tables[index + 1], "end_value": str(left), "start_value": str(right), "difference": str(left_number - right_number)})
+            result.append(
+                {
+                    "status": "chain_mismatch",
+                    "from": tables[index],
+                    "to": tables[index + 1],
+                    "end_value": str(left),
+                    "start_value": str(right),
+                    "difference": str(left_number - right_number),
+                }
+            )
     return result
 
 
@@ -99,7 +121,11 @@ def missing_check(base, rule):
     rows = _records(base / rule["file"])
     if not rows or rule["time_column"] not in rows[0]:
         raise ValueError(f"missing_check 缺少时间字段：{rule['time_column']}")
-    actual = {_parse_time(row[rule["time_column"]], frequency) for row in rows if row.get(rule["time_column"]) not in (None, "")}
+    actual = {
+        _parse_time(row[rule["time_column"]], frequency)
+        for row in rows
+        if row.get(rule["time_column"]) not in (None, "")
+    }
     if not actual:
         return []
     start = _parse_time(rule["start"], frequency) if rule.get("start") else min(actual)
@@ -110,8 +136,15 @@ def missing_check(base, rule):
     cursor = start
     while cursor <= end:
         expected.add(cursor)
-        cursor = (cursor.replace(day=28) + timedelta(days=4)).replace(day=1) if frequency == "month" else cursor + timedelta(days=1)
-    return [{"status": "data_missing", "time_column": rule["time_column"], "missing": _format_time(item, frequency)} for item in sorted(expected - actual)]
+        cursor = (
+            (cursor.replace(day=28) + timedelta(days=4)).replace(day=1)
+            if frequency == "month"
+            else cursor + timedelta(days=1)
+        )
+    return [
+        {"status": "data_missing", "time_column": rule["time_column"], "missing": _format_time(item, frequency)}
+        for item in sorted(expected - actual)
+    ]
 
 
 def run_finance_checks(base, checks):
@@ -130,8 +163,19 @@ def run_finance_checks(base, checks):
             result.extend(missing_check(base, rule))
         elif kind == "period_check":
             from ..period_check import period_check
+
             rows = _records(base / rule["file"])
-            result.extend(period_check(rows, rule["period_column"], rule["value_column"], rule.get("current"), rule.get("previous"), rule.get("threshold", "0.3"), rule.get("periods")))
+            result.extend(
+                period_check(
+                    rows,
+                    rule["period_column"],
+                    rule["value_column"],
+                    rule.get("current"),
+                    rule.get("previous"),
+                    rule.get("threshold", "0.3"),
+                    rule.get("periods"),
+                )
+            )
         else:
             raise ValueError(f"未知金融检查类型：{kind}")
     return result

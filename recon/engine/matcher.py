@@ -1,4 +1,6 @@
 """匹配阶段的可复用键处理工具。"""
+
+
 def make_key(row, columns, clean=str):
     values = tuple(clean(row.get(column)) for column in columns)
     if any(value is None or not str(value).strip() for value in values):

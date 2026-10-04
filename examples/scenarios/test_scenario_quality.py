@@ -1,5 +1,7 @@
 from pathlib import Path
+
 from recon.quality import assess_file
+
 
 def test_quality_scenario():
     root = Path(__file__).parent / "quality_demo"

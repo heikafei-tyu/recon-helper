@@ -1,4 +1,6 @@
 """规则业务语义层检查。"""
+
+
 def check_semantics(raw):
     errors = []
     tolerance = raw.get("tolerance", {}) if isinstance(raw, dict) else {}

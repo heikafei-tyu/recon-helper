@@ -2,12 +2,14 @@ import pytest
 
 from recon.period_check import period_check
 
-
 ROWS = [{"month": f"2024-{i:02d}", "amount": value} for i, value in enumerate((100, 110, 120, 130), 1)]
 
 
 def test_trend_is_stable():
-    assert period_check(ROWS, "month", "amount", threshold="0.1", periods=["2024-01", "2024-02", "2024-03", "2024-04"]) == []
+    assert (
+        period_check(ROWS, "month", "amount", threshold="0.1", periods=["2024-01", "2024-02", "2024-03", "2024-04"])
+        == []
+    )
 
 
 def test_trend_boundary_at_threshold():
@@ -27,4 +29,6 @@ def test_trend_requires_three_periods():
 
 def test_trend_rejects_invalid_number():
     with pytest.raises(ValueError):
-        period_check([{"month": "2024-01", "amount": "bad"}], "month", "amount", periods=["2024-01", "2024-02", "2024-03"])
+        period_check(
+            [{"month": "2024-01", "amount": "bad"}], "month", "amount", periods=["2024-01", "2024-02", "2024-03"]
+        )

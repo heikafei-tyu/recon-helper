@@ -1,7 +1,8 @@
 """Operational orchestration and governance views for reconciliation runs."""
+
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from time import perf_counter
@@ -28,7 +29,9 @@ def run_batch(rule_files: Iterable[str | Path], store_path="recon_history.db", s
     started = perf_counter()
     rule_files = list(rule_files)
     with ResultStore(store_path) as store:
-        batch_id = store.create_batch(name or f"batch-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}", rule_files)
+        batch_id = store.create_batch(
+            name or f"batch-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}", rule_files
+        )
         task_rows = [item["id"] for item in store.batches(1)[0]["tasks"]]
         for raw_path in rule_files:
             path = Path(raw_path)
@@ -51,7 +54,15 @@ def run_batch(rule_files: Iterable[str | Path], store_path="recon_history.db", s
             task_id = task_rows[len(items)]
             store.update_batch_task(task_id, item.status, 1, item.history_id, item.elapsed, item.error)
             items.append(item)
-    return {"batch_id": batch_id, "items": [asdict(item) for item in items], "total": len(items), "elapsed": round(perf_counter() - started, 6), "passed": sum(item.status == "passed" for item in items), "with_differences": sum(item.status == "differences" for item in items), "failed": sum(item.status == "failed" for item in items)}
+    return {
+        "batch_id": batch_id,
+        "items": [asdict(item) for item in items],
+        "total": len(items),
+        "elapsed": round(perf_counter() - started, 6),
+        "passed": sum(item.status == "passed" for item in items),
+        "with_differences": sum(item.status == "differences" for item in items),
+        "failed": sum(item.status == "failed" for item in items),
+    }
 
 
 def history_summary(store_path="recon_history.db", limit=100):
@@ -64,7 +75,13 @@ def history_summary(store_path="recon_history.db", limit=100):
     for record in records:
         day = record["created_at"][:10]
         trend[day] = trend.get(day, 0) + record["difference_count"]
-    return {"total_runs": len(records), "difference_total": sum(item["difference_count"] for item in records), "fatal_runs": sum(item["severity"] == "fatal" for item in records), "trend": [{"date": date, "differences": count} for date, count in sorted(trend.items())], "recent": records[:10]}
+    return {
+        "total_runs": len(records),
+        "difference_total": sum(item["difference_count"] for item in records),
+        "fatal_runs": sum(item["severity"] == "fatal" for item in records),
+        "trend": [{"date": date, "differences": count} for date, count in sorted(trend.items())],
+        "recent": records[:10],
+    }
 
 
 def review_queue(store_path="recon_history.db", limit=100):
@@ -77,7 +94,14 @@ def review_queue(store_path="recon_history.db", limit=100):
     for record in records:
         for difference in record["differences"]:
             if difference.get("review_status", "未处理") == "未处理":
-                queue.append({"history_id": record["id"], "created_at": record["created_at"], "severity": record["severity"], **difference})
+                queue.append(
+                    {
+                        "history_id": record["id"],
+                        "created_at": record["created_at"],
+                        "severity": record["severity"],
+                        **difference,
+                    }
+                )
     return {"total": len(queue), "items": queue[:limit]}
 
 
@@ -85,7 +109,14 @@ def export_history(store_path, output, severity=None):
     """Export a compact JSON history snapshot for audit handoff."""
     with ResultStore(store_path) as store:
         records = store.query(severity=severity, limit=10000)
-    destination = Path(output); destination.parent.mkdir(parents=True, exist_ok=True)
+    destination = Path(output)
+    destination.parent.mkdir(parents=True, exist_ok=True)
     import json
-    destination.write_text(json.dumps({"exported_at": datetime.now(timezone.utc).isoformat(), "records": records}, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    destination.write_text(
+        json.dumps(
+            {"exported_at": datetime.now(timezone.utc).isoformat(), "records": records}, ensure_ascii=False, indent=2
+        ),
+        encoding="utf-8",
+    )
     return {"output": str(destination), "records": len(records)}

@@ -1,4 +1,5 @@
 """表结构和质量校验。"""
+
 from decimal import Decimal, InvalidOperation
 
 
@@ -28,13 +29,21 @@ def validate_schema(rows, required=None, types=None, max_null_rate=1):
             errors.append(f"{column} 空值率 {rate:.2%} 超过阈值")
     return errors
 
+
 def schema_report(rows, required=None, types=None, max_null_rate=1):
     errors = validate_schema(rows, required, types, max_null_rate)
     return {"valid": not errors, "error_count": len(errors), "errors": errors, "row_count": len(rows)}
 
+
 def infer_schema(rows):
     columns = sorted({key for row in rows for key in row})
-    return {column: "number" if all(_is_number(row.get(column)) for row in rows if row.get(column) not in (None, "")) else "text" for column in columns}
+    return {
+        column: "number"
+        if all(_is_number(row.get(column)) for row in rows if row.get(column) not in (None, ""))
+        else "text"
+        for column in columns
+    }
+
 
 def _is_number(value):
     try:

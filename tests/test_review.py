@@ -4,7 +4,9 @@ from recon.store import ResultStore
 def test_review_update_and_query(tmp_path):
     path = tmp_path / "history.db"
     with ResultStore(path) as store:
-        history_id = store.save({"name": "rules"}, {"differences": [{"status": "mismatch", "column": "amount"}, {"status": "left_only"}]})
+        history_id = store.save(
+            {"name": "rules"}, {"differences": [{"status": "mismatch", "column": "amount"}, {"status": "left_only"}]}
+        )
         changed = store.review(history_id, "已修复", "已补录流水")
         assert changed["updated"] == 2
         items = store.query()

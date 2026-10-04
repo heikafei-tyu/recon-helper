@@ -31,6 +31,7 @@ def test_negative_timeout_rejected(tmp_path):
     path = tmp_path / "data.csv"
     path.write_text("id\n1\n", encoding="utf-8")
     import pytest
+
     with pytest.raises(ValueError, match="不能为负数"):
         benchmark(path, timeout=-1)
 

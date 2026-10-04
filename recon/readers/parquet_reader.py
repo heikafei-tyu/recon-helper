@@ -5,6 +5,7 @@ from ..model import Table
 def read(path, encoding=None):
     try:
         import pyarrow.parquet as parquet
+
         table = parquet.read_table(path)
         rows = table.to_pylist()
         columns = list(table.column_names)

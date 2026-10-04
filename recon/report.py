@@ -19,9 +19,18 @@ def create_html_report(rules_file, output):
         difference.setdefault("review_note", "")
     rows = result["differences"]
     columns = ["key", "status", "review_status", "review_note", "column", "left_value", "right_value", "difference"]
+
     def esc(value):
         return str(value).replace("&", "&amp;").replace("<", "&lt;").replace('"', "&quot;")
-    body = "".join("<tr data-status='{}' data-table='{}' title='上下文：{}'>".format(esc(row.get("status", "")), esc(row.get("left_table", row.get("from", ""))), esc(row.get("key", ""))) + "".join(f"<td>{esc(row.get(column, ''))}</td>" for column in columns) + "</tr>" for row in rows)
+
+    body = "".join(
+        "<tr data-status='{}' data-table='{}' title='上下文：{}'>".format(
+            esc(row.get("status", "")), esc(row.get("left_table", row.get("from", ""))), esc(row.get("key", ""))
+        )
+        + "".join(f"<td>{esc(row.get(column, ''))}</td>" for column in columns)
+        + "</tr>"
+        for row in rows
+    )
     header = "".join(f"<th data-column='{column}'>{column} ↕</th>" for column in columns)
     html = f"""<!doctype html><meta charset='utf-8'><title>recon-helper report</title>
 <style>body{{font:14px system-ui;margin:2rem}}table{{border-collapse:collapse;width:100%}}th,td{{border:1px solid #ddd;padding:6px}}th{{cursor:pointer;background:#eef2f7}}tr[data-status='mismatch']{{background:#fff2cc}}.controls{{display:flex;gap:1rem;margin:1rem 0}}label{{font-weight:600}}</style>
@@ -41,12 +50,14 @@ def _digest(path):
             h.update(block)
     return h.hexdigest()
 
+
 def create_report(rules_file, output, incremental=False, force=False, template="detailed"):
     if template not in {"simple", "detailed", "management"}:
         raise ValueError("未知报告模板：simple、detailed、management")
     rules_path = Path(rules_file)
     output = Path(output)
     import yaml
+
     config = yaml.safe_load(rules_path.read_text(encoding="utf-8-sig"))
     source_names = [config.get("left"), config.get("right")]
     for check in config.get("checks", []):
@@ -88,8 +99,26 @@ def create_report(rules_file, output, incremental=False, force=False, template="
     summary = book.active
     summary.title = "Summary"
     rows = result["differences"]
-    preferred = ["key", "status", "review_status", "review_note", "left_table", "right_table", "left_row", "right_row", "column", "left_value", "right_value", "difference", "tolerance", "tolerance_type", "tolerance_rule", "rule_priority"]
+    preferred = [
+        "key",
+        "status",
+        "review_status",
+        "review_note",
+        "left_table",
+        "right_table",
+        "left_row",
+        "right_row",
+        "column",
+        "left_value",
+        "right_value",
+        "difference",
+        "tolerance",
+        "tolerance_type",
+        "tolerance_rule",
+        "rule_priority",
+    ]
     columns = [key for key in preferred if any(key in row for row in rows)] or ["status"]
+
     def add_detail_sheet(title, selected):
         sheet = book.create_sheet(title)
         sheet.append(columns)
@@ -100,12 +129,21 @@ def create_report(rules_file, output, incremental=False, force=False, template="
             cell.font = Font(bold=True)
         for row in selected:
             sheet.append([" / ".join(row[k]) if isinstance(row.get(k), (tuple, list)) else row.get(k) for k in columns])
-            if row.get("status") in ("mismatch", "total_mismatch", "chain_mismatch", "data_missing", "left_only", "right_only"):
+            if row.get("status") in (
+                "mismatch",
+                "total_mismatch",
+                "chain_mismatch",
+                "data_missing",
+                "left_only",
+                "right_only",
+            ):
                 for cell in sheet[sheet.max_row]:
                     cell.fill = fills
         for column_cells in sheet.columns:
             letter = column_cells[0].column_letter
-            sheet.column_dimensions[letter].width = min(40, max(12, max(len(str(cell.value or "")) for cell in column_cells) + 2))
+            sheet.column_dimensions[letter].width = min(
+                40, max(12, max(len(str(cell.value or "")) for cell in column_cells) + 2)
+            )
         return sheet
 
     add_detail_sheet("Differences", rows)
@@ -117,22 +155,77 @@ def create_report(rules_file, output, incremental=False, force=False, template="
         if title in {"Summary", "Differences"} or title in detail_names:
             title = f"{title}_{len(detail_names) + 1}"
         detail_names.append(title)
-        selected = [row for row in rows if Path(str(row.get("left_table", ""))).stem == Path(name).stem or Path(str(row.get("right_table", ""))).stem == Path(name).stem or row.get("from") == name or row.get("to") == name]
+        selected = [
+            row
+            for row in rows
+            if Path(str(row.get("left_table", ""))).stem == Path(name).stem
+            or Path(str(row.get("right_table", ""))).stem == Path(name).stem
+            or row.get("from") == name
+            or row.get("to") == name
+        ]
         add_detail_sheet(title, selected)
     summary.append(["metric", "value"])
-    counts = {status: sum(r.get("status") == status for r in rows) for status in ("mismatch", "within_tolerance", "left_only", "right_only")}
-    summary_rows = [("tool_version", "0.1.0"), ("run_at_utc", datetime.now(timezone.utc).isoformat()), ("rules_file", str(rules_path)), ("left_file", str(sources[1]) if len(sources) > 1 else None), ("right_file", str(sources[2]) if len(sources) > 2 else None), ("left_sha256", manifest.get(str(sources[1])) if len(sources) > 1 else None), ("right_sha256", manifest.get(str(sources[2])) if len(sources) > 2 else None), ("left_rows", result.get("left_rows", 0)), ("right_rows", result.get("right_rows", 0)), ("differences", len(rows)), ("conclusion", "通过" if not rows else "存在差异"), *counts.items()]
+    counts = {
+        status: sum(r.get("status") == status for r in rows)
+        for status in ("mismatch", "within_tolerance", "left_only", "right_only")
+    }
+    summary_rows = [
+        ("tool_version", "0.1.0"),
+        ("run_at_utc", datetime.now(timezone.utc).isoformat()),
+        ("rules_file", str(rules_path)),
+        ("left_file", str(sources[1]) if len(sources) > 1 else None),
+        ("right_file", str(sources[2]) if len(sources) > 2 else None),
+        ("left_sha256", manifest.get(str(sources[1])) if len(sources) > 1 else None),
+        ("right_sha256", manifest.get(str(sources[2])) if len(sources) > 2 else None),
+        ("left_rows", result.get("left_rows", 0)),
+        ("right_rows", result.get("right_rows", 0)),
+        ("differences", len(rows)),
+        ("conclusion", "通过" if not rows else "存在差异"),
+        *counts.items(),
+    ]
     for key, value in summary_rows:
         summary.append([key, value])
     if quality_scores and template != "simple":
         quality_sheet = book.create_sheet("Quality")
-        quality_sheet.append(["table", "score", "threshold", "passed", "null_rate", "type_error_rate", "duplicate_rate", "key_uniqueness_rate", "deduction_empty", "deduction_type", "deduction_duplicates", "deduction_key"])
-        for cell in quality_sheet[1]: cell.font = Font(bold=True)
+        quality_sheet.append(
+            [
+                "table",
+                "score",
+                "threshold",
+                "passed",
+                "null_rate",
+                "type_error_rate",
+                "duplicate_rate",
+                "key_uniqueness_rate",
+                "deduction_empty",
+                "deduction_type",
+                "deduction_duplicates",
+                "deduction_key",
+            ]
+        )
+        for cell in quality_sheet[1]:
+            cell.font = Font(bold=True)
         for quality in quality_scores:
             dimensions, deductions = quality["dimensions"], quality["deductions"]
-            quality_sheet.append([quality["source"] or "input", quality["score"], quality["threshold"], quality["passed"], dimensions["null_rate"], dimensions["type_error_rate"], dimensions["duplicate_rate"], dimensions["key_uniqueness_rate"], deductions["empty"], deductions["type"], deductions["duplicates"], deductions["key"]])
+            quality_sheet.append(
+                [
+                    quality["source"] or "input",
+                    quality["score"],
+                    quality["threshold"],
+                    quality["passed"],
+                    dimensions["null_rate"],
+                    dimensions["type_error_rate"],
+                    dimensions["duplicate_rate"],
+                    dimensions["key_uniqueness_rate"],
+                    deductions["empty"],
+                    deductions["type"],
+                    deductions["duplicates"],
+                    deductions["key"],
+                ]
+            )
             if not quality["passed"]:
-                for cell in quality_sheet[quality_sheet.max_row]: cell.fill = PatternFill("solid", fgColor="FFC7CE")
+                for cell in quality_sheet[quality_sheet.max_row]:
+                    cell.fill = PatternFill("solid", fgColor="FFC7CE")
         quality_sheet.freeze_panes = "A2"
         quality_sheet.auto_filter.ref = f"A1:L{quality_sheet.max_row}"
         summary.append(["quality_scores", ""])
@@ -144,11 +237,19 @@ def create_report(rules_file, output, incremental=False, force=False, template="
                     cell.fill = PatternFill("solid", fgColor="FFC7CE")
     try:
         import matplotlib
+
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
+
         chart_path = output.with_suffix(".summary.png")
-        labels = list(counts); values = list(counts.values())
-        figure, axis = plt.subplots(figsize=(5, 3)); axis.bar(labels, values, color="#4C78A8"); axis.set_title("差异分布"); figure.tight_layout(); figure.savefig(chart_path); plt.close(figure)
+        labels = list(counts)
+        values = list(counts.values())
+        figure, axis = plt.subplots(figsize=(5, 3))
+        axis.bar(labels, values, color="#4C78A8")
+        axis.set_title("差异分布")
+        figure.tight_layout()
+        figure.savefig(chart_path)
+        plt.close(figure)
         if template != "simple":
             summary.add_image(XLImage(str(chart_path)), "D2")
     except ImportError:

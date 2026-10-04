@@ -13,12 +13,27 @@ def test_fx_quote_expired():
 
 
 def test_fx_same_day_conflict():
-    result = FXRates.validate_quotes([{"currency": "USD", "date": "2024-02-01", "rate": "7.2"}, {"currency": "USD", "date": "2024-02-01", "rate": "7.3"}], "2024-02-01")
+    result = FXRates.validate_quotes(
+        [
+            {"currency": "USD", "date": "2024-02-01", "rate": "7.2"},
+            {"currency": "USD", "date": "2024-02-01", "rate": "7.3"},
+        ],
+        "2024-02-01",
+    )
     assert result[0]["status"] == "rate_conflict"
 
 
 def test_fx_same_rate_is_not_conflict():
-    assert FXRates.validate_quotes([{"currency": "USD", "date": "2024-02-01", "rate": "7.2"}, {"currency": "USD", "date": "2024-02-01", "rate": "7.2"}], "2024-02-01") == []
+    assert (
+        FXRates.validate_quotes(
+            [
+                {"currency": "USD", "date": "2024-02-01", "rate": "7.2"},
+                {"currency": "USD", "date": "2024-02-01", "rate": "7.2"},
+            ],
+            "2024-02-01",
+        )
+        == []
+    )
 
 
 def test_fx_invalid_quote_fields():

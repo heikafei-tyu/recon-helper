@@ -8,6 +8,8 @@ def test_masking(tmp_path):
     masked = mask_rows(rows, {"name": "name", "phone": "phone", "amount": "amount"})[0]
     assert masked == {"name": "张*", "phone": "138****5678", "amount": "13"}
     assert export_masked_csv(rows, {"name": "name"}, tmp_path / "x.csv")["rows"] == 1
+
+
 @pytest.mark.parametrize("rule", ["bad", "", None])
 def test_mask_invalid(rule):
     with pytest.raises(ValueError):

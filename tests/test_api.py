@@ -16,6 +16,7 @@ async def test_reconcile_api():
     assert response.status_code == 200
     assert response.json()["differences"] == []
 
+
 @pytest.mark.anyio
 async def test_reconcile_api_rejects_bad_input():
     transport = httpx.ASGITransport(app=app)

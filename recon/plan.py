@@ -1,11 +1,12 @@
 """Build and execute dependency-aware reconciliation plans."""
+
 from dataclasses import dataclass, field
 from pathlib import Path
 from time import perf_counter
 
 from .engine import run_rules
-from .parallel import run_rules_parallel
 from .execution import RetryPolicy, execute
+from .parallel import run_rules_parallel
 
 
 @dataclass(frozen=True)
@@ -27,39 +28,60 @@ class ExecutionPlan:
         return self
 
     def validate(self):
-        missing = {dependency for task in self.tasks.values() for dependency in task.depends_on if dependency not in self.tasks}
+        missing = {
+            dependency for task in self.tasks.values() for dependency in task.depends_on if dependency not in self.tasks
+        }
         if missing:
             raise ValueError(f"计划依赖不存在：{', '.join(sorted(missing))}")
         visiting, visited = set(), set()
+
         def visit(name):
             if name in visiting:
                 raise ValueError(f"计划存在循环依赖：{name}")
-            if name in visited: return
+            if name in visited:
+                return
             visiting.add(name)
-            for dependency in self.tasks[name].depends_on: visit(dependency)
-            visiting.remove(name); visited.add(name)
-        for name in self.tasks: visit(name)
+            for dependency in self.tasks[name].depends_on:
+                visit(dependency)
+            visiting.remove(name)
+            visited.add(name)
+
+        for name in self.tasks:
+            visit(name)
         return True
 
     def layers(self):
-        self.validate(); done, layers = set(), []
+        self.validate()
+        done, layers = set(), []
         while len(done) < len(self.tasks):
             layer = [task for name, task in self.tasks.items() if name not in done and set(task.depends_on) <= done]
-            if not layer: raise ValueError("计划无法生成执行层")
-            layers.append(layer); done.update(task.name for task in layer)
+            if not layer:
+                raise ValueError("计划无法生成执行层")
+            layers.append(layer)
+            done.update(task.name for task in layer)
         return layers
 
     def run(self, max_workers=None):
         results, started = {}, perf_counter()
         for layer in self.layers():
-            layer_results = run_rules_parallel([task.rules_file for task in layer], max_workers) if len(layer) > 1 else [run_rules(layer[0].rules_file)]
+            layer_results = (
+                run_rules_parallel([task.rules_file for task in layer], max_workers)
+                if len(layer) > 1
+                else [run_rules(layer[0].rules_file)]
+            )
             results.update({task.name: result for task, result in zip(layer, layer_results)})
-        return {"results": results, "layers": [[task.name for task in layer] for layer in self.layers()], "seconds": round(perf_counter() - started, 6)}
+        return {
+            "results": results,
+            "layers": [[task.name for task in layer] for layer in self.layers()],
+            "seconds": round(perf_counter() - started, 6),
+        }
 
     def run_with_policy(self, policy=None, fail_fast=False):
         """按层执行并返回带执行事件的结果，适合 CLI 和调度器使用。"""
         policy = policy or RetryPolicy()
-        started = perf_counter(); reports = {}; stopped = False
+        started = perf_counter()
+        reports = {}
+        stopped = False
         layers = self.layers()
         for layer in layers:
             for task in layer:
@@ -73,9 +95,12 @@ class ExecutionPlan:
         return {
             "results": {name: report.result for name, report in reports.items() if report.succeeded},
             "execution": {
-                name: {"status": report.status, "attempts": report.attempts,
-                       "error": report.error,
-                       "events": [event.__dict__ for event in report.events]}
+                name: {
+                    "status": report.status,
+                    "attempts": report.attempts,
+                    "error": report.error,
+                    "events": [event.__dict__ for event in report.events],
+                }
                 for name, report in reports.items()
             },
             "layers": [[task.name for task in layer] for layer in layers],
@@ -94,4 +119,5 @@ def plan_from_config(config, base=Path(".")):
         dependencies = tuple(item.get("depends_on", ()))
         tags = tuple(item.get("tags", ()))
         plan.add(PlanTask(item["name"], Path(base) / item["rules"], dependencies, tags))
-    plan.validate(); return plan
+    plan.validate()
+    return plan

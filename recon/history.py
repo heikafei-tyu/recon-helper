@@ -14,13 +14,27 @@ def _digest(path):
 
 def save_snapshot(rules_file, result, directory="history"):
     rules_path = Path(rules_file)
-    data = json.loads(rules_path.read_text(encoding="utf-8-sig")) if rules_path.suffix == ".json" else rules_path.read_text(encoding="utf-8-sig")
+    data = (
+        json.loads(rules_path.read_text(encoding="utf-8-sig"))
+        if rules_path.suffix == ".json"
+        else rules_path.read_text(encoding="utf-8-sig")
+    )
     source = data if isinstance(data, dict) else {}
     files = [rules_path]
     for key in ("left", "right"):
         if source.get(key):
             files.append(rules_path.parent / source[key])
-    snapshot = {"created_at": datetime.now(timezone.utc).isoformat(), "rules": source, "files": {str(path): _digest(path) for path in files if path.exists()}, "summary": {"differences": len(result.get("differences", [])), "left_rows": result.get("left_rows", 0), "right_rows": result.get("right_rows", 0)}, "differences": result.get("differences", [])}
+    snapshot = {
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "rules": source,
+        "files": {str(path): _digest(path) for path in files if path.exists()},
+        "summary": {
+            "differences": len(result.get("differences", [])),
+            "left_rows": result.get("left_rows", 0),
+            "right_rows": result.get("right_rows", 0),
+        },
+        "differences": result.get("differences", []),
+    }
     target = Path(directory)
     target.mkdir(parents=True, exist_ok=True)
     path = target / f"{datetime.now().strftime('%Y%m%d%H%M%S%f')}.json"
@@ -33,9 +47,14 @@ def list_history(directory="history"):
 
 
 def load_history(directory="history"):
-    db = Path(directory).parent / "recon_history.db" if Path(directory).name == "history" else Path(directory) / "recon_history.db"
+    db = (
+        Path(directory).parent / "recon_history.db"
+        if Path(directory).name == "history"
+        else Path(directory) / "recon_history.db"
+    )
     if db.exists():
         from .store import ResultStore
+
         with ResultStore(db) as store:
             return store.query()
     return [json.loads(path.read_text(encoding="utf-8")) for path in list_history(directory)]
@@ -43,11 +62,17 @@ def load_history(directory="history"):
 
 def compare_snapshots(before, after):
     """Compare two snapshot dictionaries by their serialized difference entries."""
+
     def differences(snapshot):
         value = snapshot.get("differences", [])
         return {json.dumps(item, ensure_ascii=False, sort_keys=True) for item in value}
+
     old, new = differences(before), differences(after)
-    return {"added": [json.loads(item) for item in sorted(new - old)], "resolved": [json.loads(item) for item in sorted(old - new)], "unchanged": len(old & new)}
+    return {
+        "added": [json.loads(item) for item in sorted(new - old)],
+        "resolved": [json.loads(item) for item in sorted(old - new)],
+        "unchanged": len(old & new),
+    }
 
 
 def compare_history(directory, before, after):

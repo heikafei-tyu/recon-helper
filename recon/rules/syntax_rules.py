@@ -1,4 +1,6 @@
 """规则语法层检查。"""
+
+
 def check_syntax(raw):
     errors = []
     if not isinstance(raw, dict):

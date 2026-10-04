@@ -12,6 +12,7 @@ def stream_csv(path):
 
 def stream_xlsx(path, sheet_name=None):
     from openpyxl import load_workbook
+
     book = load_workbook(path, read_only=True, data_only=True)
     try:
         sheet = book[sheet_name] if sheet_name else book.worksheets[0]
@@ -54,7 +55,16 @@ def benchmark(path, key="id", check_duplicates=True, timeout=None, progress=Fals
             raise TimeoutError(f"超过 {timeout} 秒")
     _, peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
-    return {"file": str(path), "format": path.suffix.lower().lstrip("."), "bytes": path.stat().st_size, "rows": rows, "duplicates": duplicates if check_duplicates else None, "seconds": round(time.perf_counter() - started, 6), "peak_memory_mb": round(peak / 1024 / 1024, 3), "duplicate_check": check_duplicates}
+    return {
+        "file": str(path),
+        "format": path.suffix.lower().lstrip("."),
+        "bytes": path.stat().st_size,
+        "rows": rows,
+        "duplicates": duplicates if check_duplicates else None,
+        "seconds": round(time.perf_counter() - started, 6),
+        "peak_memory_mb": round(peak / 1024 / 1024, 3),
+        "duplicate_check": check_duplicates,
+    }
 
 
 def generate_benchmark_csv(path, rows=100_000):
@@ -70,7 +80,11 @@ def benchmark_generated(rows=100_000, timeout=None, progress=False):
     with tempfile.TemporaryDirectory(prefix="recon-bench-") as directory:
         path = generate_benchmark_csv(Path(directory) / "generated.csv", rows)
         optimized = benchmark(path, timeout=timeout, progress=progress)
-        return {"rows_requested": rows, "optimized": optimized, "baseline": {"method": "full-table", "memory_note": "未执行全量载入，作为流式方案的理论对照"}}
+        return {
+            "rows_requested": rows,
+            "optimized": optimized,
+            "baseline": {"method": "full-table", "memory_note": "未执行全量载入，作为流式方案的理论对照"},
+        }
 
 
 def memory_curve(path, interval=0.1):
@@ -79,5 +93,16 @@ def memory_curve(path, interval=0.1):
         from memory_profiler import memory_usage
     except ImportError as exc:
         raise RuntimeError("请安装 memory-profiler 后采样内存曲线") from exc
-    samples = memory_usage((benchmark, (path,), {},), interval=interval)
-    return {"samples_mb": [round(value, 3) for value in samples], "peak_mb": round(max(samples), 3), "minimum_mb": round(min(samples), 3)}
+    samples = memory_usage(
+        (
+            benchmark,
+            (path,),
+            {},
+        ),
+        interval=interval,
+    )
+    return {
+        "samples_mb": [round(value, 3) for value in samples],
+        "peak_mb": round(max(samples), 3),
+        "minimum_mb": round(min(samples), 3),
+    }

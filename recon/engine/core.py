@@ -1,4 +1,5 @@
 """按 YAML 指定的唯一键和字段比较两张表。"""
+
 import time
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
@@ -42,7 +43,10 @@ def run_rules(filename, timeout=None, progress=False):
     key_mapping = config.get("key_mapping", {}) or {}
     left_keys = key_mapping.get("left", keys)
     right_keys = key_mapping.get("right", keys)
-    if not all(isinstance(names, list) and len(names) == len(keys) and all(isinstance(name, str) and name for name in names) for names in (left_keys, right_keys)):
+    if not all(
+        isinstance(names, list) and len(names) == len(keys) and all(isinstance(name, str) and name for name in names)
+        for names in (left_keys, right_keys)
+    ):
         raise ValueError("key_mapping.left/right 必须与 keys 等长的字段列表")
     columns = config["columns"]
     if not isinstance(columns, list) or not columns:
@@ -70,6 +74,7 @@ def run_rules(filename, timeout=None, progress=False):
         if casefold:
             value = value.casefold()
         return value
+
     tolerance = config.get("tolerance", {})
     if tolerance is None:
         tolerance = {}
@@ -97,7 +102,9 @@ def run_rules(filename, timeout=None, progress=False):
             if rounding is not None:
                 if not isinstance(rounding, dict) or rounding.get("mode", "raw") not in ("raw", "cents", "decimal"):
                     raise ValueError(f"tolerance.{name}.rounding.mode 必须是 raw、cents 或 decimal")
-                if "digits" in rounding and (not isinstance(rounding["digits"], int) or not 0 <= rounding["digits"] <= 6):
+                if "digits" in rounding and (
+                    not isinstance(rounding["digits"], int) or not 0 <= rounding["digits"] <= 6
+                ):
                     raise ValueError(f"tolerance.{name}.rounding.digits 必须是 0 到 6 的整数")
             if "priority" in rules and (not isinstance(rules["priority"], int) or rules["priority"] < 0):
                 raise ValueError(f"tolerance.{name}.priority 必须是非负整数")
@@ -122,12 +129,16 @@ def run_rules(filename, timeout=None, progress=False):
         sheet_key = f"{side}_sheet"
         if sheet_key in config and (not isinstance(config[sheet_key], str) or not config[sheet_key].strip()):
             raise ValueError(f"{sheet_key} 必须是非空工作表名")
-    tables = [read_table(path.parent / config[side], sheet_name=config.get(f"{side}_sheet")) for side in ("left", "right")]
+    tables = [
+        read_table(path.parent / config[side], sheet_name=config.get(f"{side}_sheet")) for side in ("left", "right")
+    ]
     total_rows = sum(len(table.rows) for table in tables)
     indexes = []
     for table in tables:
         table_keys = left_keys if table is tables[0] else right_keys
-        required = list(table_keys) + ([pair[0] for pair in mappings] if table is tables[0] else [pair[1] for pair in mappings])
+        required = list(table_keys) + (
+            [pair[0] for pair in mappings] if table is tables[0] else [pair[1] for pair in mappings]
+        )
         for column in required:
             if column not in table.columns:
                 raise ValueError(f"输入缺少字段 {column}")
@@ -150,7 +161,14 @@ def run_rules(filename, timeout=None, progress=False):
     for key in sorted(left.keys() | right.keys()):
         display_key = key[0] if len(key) == 1 else list(key)
         if key not in left or key not in right:
-            differences.append({"key": display_key, "status": "left_only" if key in left else "right_only", "left_row": left[key][0] if key in left else None, "right_row": right[key][0] if key in right else None})
+            differences.append(
+                {
+                    "key": display_key,
+                    "status": "left_only" if key in left else "right_only",
+                    "left_row": left[key][0] if key in left else None,
+                    "right_row": right[key][0] if key in right else None,
+                }
+            )
             continue
         for left_column, right_column in mappings:
             column = left_column
@@ -161,14 +179,25 @@ def run_rules(filename, timeout=None, progress=False):
             if left_column in units or right_column in units:
                 setting = units.get(left_column, units.get(right_column, {}))
                 a = str(convert_amount(a, setting.get("left", "元"), setting.get("target", "元"), setting.get("rates")))
-                b = str(convert_amount(b, setting.get("right", "元"), setting.get("target", "元"), setting.get("rates")))
+                b = str(
+                    convert_amount(b, setting.get("right", "元"), setting.get("target", "元"), setting.get("rates"))
+                )
             dates = config.get("dates", {}) or {}
             if dates.get(left_column) or dates.get(right_column):
                 a, b = normalize_date(a), normalize_date(b)
             if a is None or b is None:
                 if a is None and b is None and null_policy == "equal":
                     continue
-                differences.append({"key": display_key, "status": "mismatch", "column": column, "left_value": a, "right_value": b, "difference": None})
+                differences.append(
+                    {
+                        "key": display_key,
+                        "status": "mismatch",
+                        "column": column,
+                        "left_value": a,
+                        "right_value": b,
+                        "difference": None,
+                    }
+                )
                 continue
             if a == b:
                 continue
@@ -202,7 +231,10 @@ def run_rules(filename, timeout=None, progress=False):
                             rounding_mode, digits = "decimal", rules["round"]
                         if rounding_mode in ("cents", "decimal"):
                             quantum = Decimal(1).scaleb(-int(digits))
-                            rule_da, rule_db = rule_da.quantize(quantum, rounding=ROUND_HALF_UP), rule_db.quantize(quantum, rounding=ROUND_HALF_UP)
+                            rule_da, rule_db = (
+                                rule_da.quantize(quantum, rounding=ROUND_HALF_UP),
+                                rule_db.quantize(quantum, rounding=ROUND_HALF_UP),
+                            )
                         delta_value = rule_da - rule_db
                         if delta_value == 0:
                             matched = True
@@ -212,7 +244,24 @@ def run_rules(filename, timeout=None, progress=False):
                         threshold = max(absolute_limit, relative_limit)
                         if abs(delta_value) <= threshold:
                             method = "absolute" if absolute_limit >= relative_limit else "relative"
-                            differences.append({"key": display_key, "status": "within_tolerance", "column": column, "left_value": a, "right_value": b, "difference": str(delta_value), "tolerance": str(threshold), "tolerance_type": method, "tolerance_rule": rules.get("name", column), "tolerance_band": selected_band, "relative_base": str(max(abs(rule_da), abs(rule_db))), "rule_priority": rules.get("priority", 0), "rounding_mode": rounding_mode, "ignored_rules": [item.get("name", column) for item in ignored_rules]})
+                            differences.append(
+                                {
+                                    "key": display_key,
+                                    "status": "within_tolerance",
+                                    "column": column,
+                                    "left_value": a,
+                                    "right_value": b,
+                                    "difference": str(delta_value),
+                                    "tolerance": str(threshold),
+                                    "tolerance_type": method,
+                                    "tolerance_rule": rules.get("name", column),
+                                    "tolerance_band": selected_band,
+                                    "relative_base": str(max(abs(rule_da), abs(rule_db))),
+                                    "rule_priority": rules.get("priority", 0),
+                                    "rounding_mode": rounding_mode,
+                                    "ignored_rules": [item.get("name", column) for item in ignored_rules],
+                                }
+                            )
                             matched = True
                             break
                         ignored_rules.append(rules)
@@ -221,5 +270,18 @@ def run_rules(filename, timeout=None, progress=False):
                     delta = str(da - db)
             except (InvalidOperation, TypeError, ValueError):
                 pass
-            differences.append({"key": display_key, "status": "mismatch", "left_table": config["left"], "right_table": config["right"], "left_row": left[key][0], "right_row": right[key][0], "column": column, "left_value": a, "right_value": b, "difference": delta})
+            differences.append(
+                {
+                    "key": display_key,
+                    "status": "mismatch",
+                    "left_table": config["left"],
+                    "right_table": config["right"],
+                    "left_row": left[key][0],
+                    "right_row": right[key][0],
+                    "column": column,
+                    "left_value": a,
+                    "right_value": b,
+                    "difference": delta,
+                }
+            )
     return {"left_rows": len(left), "right_rows": len(right), "differences": differences}

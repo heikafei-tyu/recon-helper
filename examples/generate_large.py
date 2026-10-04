@@ -12,6 +12,7 @@ def generate(path, rows):
         for index in range(rows):
             writer.writerow([f"{index:08d}", f"{index / 100:.2f}"])
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", default="output/benchmark-100k.csv")
