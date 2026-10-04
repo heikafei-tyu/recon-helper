@@ -18,7 +18,7 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def git(*args: str) -> str:
-    return subprocess.run(["git", *args], capture_output=True, text=True, cwd=ROOT).stdout
+    return subprocess.run(["git", *args], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=ROOT).stdout
 
 
 def main() -> int:
@@ -38,7 +38,12 @@ def main() -> int:
     check("README 基础完整（是什么/安装/运行）", ok, f"缺少: {[s for s in ['安装', '运行'] if s not in (readme.read_text(encoding='utf-8') if readme.exists() else '')]}")
 
     check("requirements.txt 存在", (ROOT / "requirements.txt").exists())
-    test_run = subprocess.run([sys.executable, "-m", "pytest", "-q"], cwd=ROOT, capture_output=True, text=True)
+    test_command = [sys.executable, "-m", "pytest", "-q"]
+    try:
+        import pytest  # noqa: F401
+    except ImportError:
+        test_command = ["uv", "run", "--offline", "--with", "pytest", "--with", "pyyaml", "--with", "openpyxl", "--with", "pandas", "--with", "reportlab", "--with", "matplotlib", "--with", "fastapi", "--with", "httpx", "--with", "python-multipart", "pytest", "-q"]
+    test_run = subprocess.run(test_command, cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace")
     check("测试全绿", test_run.returncode == 0, test_run.stdout.splitlines()[-1] if test_run.stdout else test_run.stderr[-200:])
     features = ["读取", "容差", "报告", "历史", "Web", "调度"]
     readme_text = readme.read_text(encoding="utf-8") if readme.exists() else ""
