@@ -59,3 +59,5 @@ recon-helper 涉及的核心概念与术语，按功能域分组。
 - **运行日志（Run Log）**：调度器每次自动核对写入的执行记录（时间/规则/结果/耗时）。
 - **账龄对比（Aging Compare）**：与上一期账龄结构逐段比较占比变化，超阈值标记恶化或改善。
 - **趋势偏离（Trend Deviation）**：连续多期数据偏离线性趋势线超过阈值时的自动标记。
+- **端到端测试（Integration Test）**：用 FastAPI TestClient 走通"上传→核对→复核→报告"完整链路的自动化验证。
+- **架构文档（Architecture Doc）**：描述模块划分、数据流与依赖关系的说明文档（docs/architecture.md）。
