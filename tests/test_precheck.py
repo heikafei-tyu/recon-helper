@@ -23,9 +23,16 @@ class _FakeResult:
 
 @pytest.fixture
 def fake_runner(monkeypatch):
-    """把 precheck 的 subprocess.run 替换为假结果，并清空累计的检查项。"""
+    """只假冒 pytest 子进程调用（避免嵌套递归），git 调用保持真实。"""
     precheck.checks.clear()
-    monkeypatch.setattr(precheck.subprocess, "run", lambda *a, **k: _FakeResult())
+    real_run = precheck.subprocess.run
+
+    def _fake(cmd, *a, **k):
+        if isinstance(cmd, (list, tuple)) and cmd and str(cmd[0]).endswith("git"):
+            return real_run(cmd, *a, **k)
+        return _FakeResult()
+
+    monkeypatch.setattr(precheck.subprocess, "run", _fake)
 
 
 def test_precheck_all_pass_with_fake_runner(fake_runner):
