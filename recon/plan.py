@@ -5,6 +5,7 @@ from time import perf_counter
 
 from .engine import run_rules
 from .parallel import run_rules_parallel
+from .execution import RetryPolicy, execute
 
 
 @dataclass(frozen=True)
@@ -54,6 +55,33 @@ class ExecutionPlan:
             layer_results = run_rules_parallel([task.rules_file for task in layer], max_workers) if len(layer) > 1 else [run_rules(layer[0].rules_file)]
             results.update({task.name: result for task, result in zip(layer, layer_results)})
         return {"results": results, "layers": [[task.name for task in layer] for layer in self.layers()], "seconds": round(perf_counter() - started, 6)}
+
+    def run_with_policy(self, policy=None, fail_fast=False):
+        """按层执行并返回带执行事件的结果，适合 CLI 和调度器使用。"""
+        policy = policy or RetryPolicy()
+        started = perf_counter(); reports = {}; stopped = False
+        layers = self.layers()
+        for layer in layers:
+            for task in layer:
+                report = execute(task.name, lambda task=task: run_rules(task.rules_file), policy)
+                reports[task.name] = report
+                if fail_fast and not report.succeeded:
+                    stopped = True
+                    break
+            if stopped:
+                break
+        return {
+            "results": {name: report.result for name, report in reports.items() if report.succeeded},
+            "execution": {
+                name: {"status": report.status, "attempts": report.attempts,
+                       "error": report.error,
+                       "events": [event.__dict__ for event in report.events]}
+                for name, report in reports.items()
+            },
+            "layers": [[task.name for task in layer] for layer in layers],
+            "stopped": stopped,
+            "seconds": round(perf_counter() - started, 6),
+        }
 
 
 def plan_from_config(config, base=Path(".")):

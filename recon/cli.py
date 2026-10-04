@@ -1,6 +1,7 @@
 import argparse
 import json
 import sys
+from pathlib import Path
 from zipfile import BadZipFile
 
 from .benchmark import benchmark, benchmark_generated
@@ -12,6 +13,9 @@ from .profiles import list_profiles, show_profile, use_profile
 from .readers import read_table
 from .report import create_report
 from .scheduler import list_jobs, start as schedule_start, stop as schedule_stop
+from .plan import plan_from_config
+from .execution import RetryPolicy
+import yaml
 
 
 def main(argv=None):
@@ -63,6 +67,12 @@ def main(argv=None):
     start_schedule = schedule_commands.add_parser("start"); start_schedule.add_argument("name"); start_schedule.add_argument("rules"); start_schedule.add_argument("--at", default="00:00"); start_schedule.add_argument("--interval", type=float)
     stop_schedule = schedule_commands.add_parser("stop"); stop_schedule.add_argument("name")
     schedule_commands.add_parser("list")
+    plan = commands.add_parser("plan", help="按依赖计划执行多个规则")
+    plan.add_argument("config", help="YAML 计划文件")
+    plan.add_argument("--attempts", type=int, default=1)
+    plan.add_argument("--delay", type=float, default=0.0)
+    plan.add_argument("--timeout", type=float)
+    plan.add_argument("--fail-fast", action="store_true")
     args = parser.parse_args(argv)
     try:
         if args.command == "init":
@@ -73,6 +83,14 @@ def main(argv=None):
             result = schedule_start(args.name, args.rules, args.at, args.interval) if args.schedule_command == "start" else schedule_stop(args.name) if args.schedule_command == "stop" else {"jobs": list_jobs()}
         elif args.command == "history":
             result = compare_history(args.dir, *args.compare) if args.compare else {"history": load_history(args.dir)}
+        elif args.command == "plan":
+            source = Path(args.config)
+            config = yaml.safe_load(source.read_text(encoding="utf-8-sig"))
+            items = config.get("tasks") if isinstance(config, dict) else config
+            execution_plan = plan_from_config(items, source.parent)
+            result = execution_plan.run_with_policy(
+                RetryPolicy(args.attempts, args.delay, args.timeout), args.fail_fast
+            )
         elif args.command == "profile":
             if args.profile_command == "list":
                 result = {"profiles": list_profiles()}
@@ -88,7 +106,6 @@ def main(argv=None):
         elif args.command == "bench":
             result = benchmark_generated(timeout=args.timeout, progress=args.progress) if args.file is None else benchmark(args.file, args.key, not args.no_duplicate_check, args.timeout, args.progress)
             if args.json_out:
-                from pathlib import Path
                 Path(args.json_out).parent.mkdir(parents=True, exist_ok=True)
                 Path(args.json_out).write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
         elif args.command == "report":
