@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Request
 from .config import load_config
 from .store import ResultStore
+from .notify import NotificationSettings, notify_result
 from fastapi.responses import HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -63,7 +64,7 @@ def web_reports():
     return page("<h1>报告下载</h1><p>请使用命令行生成报告：</p><pre>recon report rules.yaml --out output/reconciliation.xlsx</pre><a href='/docs'>打开 API 文档</a>")
 
 @app.post("/reconcile")
-async def reconcile(file: UploadFile = File(...), rules: str = Form(...)):
+async def reconcile(file: UploadFile = File(...), rules: str = Form(...), notify_webhook: str | None = Form(None)):
     if not file.filename or Path(file.filename).suffix.lower() not in (".csv", ".xlsx", ".json"):
         raise HTTPException(status_code=400, detail={"code": "INVALID_FILE", "message": "仅支持 CSV/XLSX/JSON"})
     try:
@@ -79,7 +80,10 @@ async def reconcile(file: UploadFile = File(...), rules: str = Form(...)):
         try:
             result = run_rules(rules_path)
             with ResultStore() as store:
-                store.save(config, result, {file.filename: __import__("hashlib").sha256(data_path.read_bytes()).hexdigest()})
+                history_id = store.save(config, result, {file.filename: __import__("hashlib").sha256(data_path.read_bytes()).hexdigest()})
+            if notify_webhook:
+                result["notification"] = notify_result(result, NotificationSettings(webhook_url=notify_webhook, enabled=True))
+            result["history_id"] = history_id
             return result
         except (ValueError, OSError) as exc:
             raise HTTPException(status_code=422, detail={"code": "RECONCILE_ERROR", "message": str(exc)}) from exc
@@ -87,3 +91,17 @@ async def reconcile(file: UploadFile = File(...), rules: str = Form(...)):
 @app.get("/history")
 def history(directory: str = "history"):
     return {"items": load_history(directory)}
+
+@app.post("/history/{history_id}/review")
+def review_history(history_id: int, status: str = Form(...), note: str = Form("")):
+    with ResultStore() as store:
+        return store.review(history_id, status, note)
+
+@app.get("/reports/{history_id}")
+def download_history_report(history_id: int):
+    from fastapi.responses import JSONResponse
+    with ResultStore() as store:
+        items = [item for item in store.query() if item["id"] == history_id]
+    if not items:
+        raise HTTPException(status_code=404, detail="历史记录不存在")
+    return JSONResponse(items[0], headers={"Content-Disposition": f"attachment; filename=reconciliation-{history_id}.json"})
