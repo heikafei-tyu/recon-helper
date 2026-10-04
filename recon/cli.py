@@ -95,6 +95,7 @@ def main(argv=None):
     batch = commands.add_parser("batch", help="批量执行规则并写入历史")
     batch.add_argument("rules", nargs="+")
     batch.add_argument("--stop-on-error", action="store_true")
+    batch.add_argument("--name")
     ops = commands.add_parser("ops", help="查看运营统计")
     ops.add_argument("view", choices=["summary", "review-queue"])
     review = commands.add_parser("review", help="批量更新差异复核状态")
@@ -129,7 +130,7 @@ def main(argv=None):
         elif args.command == "dryrun":
             result = dry_run(args.rules)
         elif args.command == "batch":
-            result = run_batch(args.rules, stop_on_error=args.stop_on_error)
+            result = run_batch(args.rules, stop_on_error=args.stop_on_error, name=args.name)
         elif args.command == "ops":
             result = history_summary() if args.view == "summary" else review_queue()
         elif args.command == "profile":

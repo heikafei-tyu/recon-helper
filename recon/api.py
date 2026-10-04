@@ -109,6 +109,11 @@ def dashboard_summary():
 def review_queue_endpoint(limit: int = Query(100, ge=1, le=1000)):
     return review_queue(limit=limit)
 
+@app.get("/batches")
+def batches(limit: int = Query(100, ge=1, le=1000)):
+    with ResultStore() as store:
+        return {"items": store.batches(limit)}
+
 @app.post("/reconcile")
 async def reconcile(file: UploadFile = File(...), rules: str = Form(...), notify_webhook: str | None = Form(None), page: int = Query(1, ge=1), page_size: int = Query(100, ge=1, le=1000)):
     if not file.filename or Path(file.filename).suffix.lower() not in (".csv", ".xlsx", ".json"):

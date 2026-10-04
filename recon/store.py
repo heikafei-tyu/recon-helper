@@ -16,7 +16,7 @@ class ResultStore:
         except sqlite3.OperationalError:
             # Another initializer may hold the schema lock; normal writes still use the busy timeout.
             pass
-        self.db.executescript("CREATE TABLE IF NOT EXISTS results (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, rules TEXT NOT NULL, fingerprints TEXT NOT NULL, severity TEXT NOT NULL, difference_count INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS diffs (id INTEGER PRIMARY KEY, result_id INTEGER NOT NULL REFERENCES results(id) ON DELETE CASCADE, table_name TEXT, severity TEXT, payload TEXT NOT NULL, review_status TEXT NOT NULL DEFAULT '未处理', review_note TEXT NOT NULL DEFAULT ''); CREATE TABLE IF NOT EXISTS audit_log (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, actor TEXT NOT NULL, method TEXT NOT NULL, path TEXT NOT NULL, status INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS jobs (name TEXT PRIMARY KEY, rules_file TEXT NOT NULL, schedule TEXT NOT NULL, status TEXT NOT NULL, run_count INTEGER NOT NULL DEFAULT 0, failure_count INTEGER NOT NULL DEFAULT 0, last_run TEXT, last_error TEXT)")
+        self.db.executescript("CREATE TABLE IF NOT EXISTS results (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, rules TEXT NOT NULL, fingerprints TEXT NOT NULL, severity TEXT NOT NULL, difference_count INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS diffs (id INTEGER PRIMARY KEY, result_id INTEGER NOT NULL REFERENCES results(id) ON DELETE CASCADE, table_name TEXT, severity TEXT, payload TEXT NOT NULL, review_status TEXT NOT NULL DEFAULT '未处理', review_note TEXT NOT NULL DEFAULT ''); CREATE TABLE IF NOT EXISTS audit_log (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, actor TEXT NOT NULL, method TEXT NOT NULL, path TEXT NOT NULL, status INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS jobs (name TEXT PRIMARY KEY, rules_file TEXT NOT NULL, schedule TEXT NOT NULL, status TEXT NOT NULL, run_count INTEGER NOT NULL DEFAULT 0, failure_count INTEGER NOT NULL DEFAULT 0, last_run TEXT, last_error TEXT); CREATE TABLE IF NOT EXISTS batches (id INTEGER PRIMARY KEY, name TEXT NOT NULL, created_at TEXT NOT NULL, status TEXT NOT NULL, task_count INTEGER NOT NULL, completed_count INTEGER NOT NULL DEFAULT 0); CREATE TABLE IF NOT EXISTS batch_tasks (id INTEGER PRIMARY KEY, batch_id INTEGER NOT NULL REFERENCES batches(id) ON DELETE CASCADE, name TEXT NOT NULL, rules_file TEXT NOT NULL, status TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, result_id INTEGER, elapsed REAL NOT NULL DEFAULT 0, error TEXT)")
         columns = {row[1] for row in self.db.execute("PRAGMA table_info(diffs)")}
         if "review_status" not in columns:
             self.db.execute("ALTER TABLE diffs ADD COLUMN review_status TEXT NOT NULL DEFAULT '未处理'")
@@ -57,6 +57,28 @@ class ResultStore:
             cursor = self.db.execute("UPDATE diffs SET review_status=?,review_note=? WHERE result_id=?", (status, note, result_id))
         self.db.commit()
         return {"history_id": result_id, "updated": cursor.rowcount, "status": status, "note": note}
+
+    def create_batch(self, name, rules_files):
+        now = datetime.now(timezone.utc).isoformat()
+        cursor = self.db.execute("INSERT INTO batches(name,created_at,status,task_count) VALUES(?,?,?,?)", (name, now, "pending", len(rules_files)))
+        batch_id = cursor.lastrowid
+        self.db.executemany("INSERT INTO batch_tasks(batch_id,name,rules_file,status) VALUES(?,?,?,?)", [(batch_id, Path(path).stem, str(path), "pending") for path in rules_files])
+        self.db.commit(); return batch_id
+
+    def update_batch_task(self, task_id, status, attempts=1, result_id=None, elapsed=0, error=None):
+        self.db.execute("UPDATE batch_tasks SET status=?,attempts=?,result_id=?,elapsed=?,error=? WHERE id=?", (status, attempts, result_id, elapsed, error, task_id))
+        batch_id = self.db.execute("SELECT batch_id FROM batch_tasks WHERE id=?", (task_id,)).fetchone()[0]
+        counts = self.db.execute("SELECT COUNT(*),SUM(status IN ('passed','differences','failed')) FROM batch_tasks WHERE batch_id=?", (batch_id,)).fetchone()
+        total, completed = counts[0], counts[1] or 0
+        status = "completed" if completed == total else "running"
+        self.db.execute("UPDATE batches SET status=?,completed_count=? WHERE id=?", (status, completed, batch_id)); self.db.commit()
+
+    def batches(self, limit=100):
+        output = []
+        for row in self.db.execute("SELECT id,name,created_at,status,task_count,completed_count FROM batches ORDER BY id DESC LIMIT ?", (limit,)):
+            tasks = [{"id": item[0], "name": item[1], "rules_file": item[2], "status": item[3], "attempts": item[4], "result_id": item[5], "elapsed": item[6], "error": item[7]} for item in self.db.execute("SELECT id,name,rules_file,status,attempts,result_id,elapsed,error FROM batch_tasks WHERE batch_id=? ORDER BY id", (row[0],))]
+            output.append({"id": row[0], "name": row[1], "created_at": row[2], "status": row[3], "task_count": row[4], "completed_count": row[5], "tasks": tasks})
+        return output
 
     def migrate_json(self, directory="history"):
         count = 0

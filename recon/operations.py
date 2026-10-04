@@ -22,11 +22,14 @@ class BatchItem:
     history_id: int | None = None
 
 
-def run_batch(rule_files: Iterable[str | Path], store_path="recon_history.db", stop_on_error=False):
+def run_batch(rule_files: Iterable[str | Path], store_path="recon_history.db", stop_on_error=False, name=None):
     """Run a group of rule files and persist every completed result."""
     items: list[BatchItem] = []
     started = perf_counter()
+    rule_files = list(rule_files)
     with ResultStore(store_path) as store:
+        batch_id = store.create_batch(name or f"batch-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}", rule_files)
+        task_rows = [item["id"] for item in store.batches(1)[0]["tasks"]]
         for raw_path in rule_files:
             path = Path(raw_path)
             item = BatchItem(path.stem, str(path))
@@ -41,11 +44,14 @@ def run_batch(rule_files: Iterable[str | Path], store_path="recon_history.db", s
                 item.error = f"{type(exc).__name__}: {exc}"
                 if stop_on_error:
                     item.elapsed = round(perf_counter() - item_started, 6)
+                    store.update_batch_task(task_rows[len(items)], item.status, 1, None, item.elapsed, item.error)
                     items.append(item)
                     break
             item.elapsed = round(perf_counter() - item_started, 6)
+            task_id = task_rows[len(items)]
+            store.update_batch_task(task_id, item.status, 1, item.history_id, item.elapsed, item.error)
             items.append(item)
-    return {"items": [asdict(item) for item in items], "total": len(items), "elapsed": round(perf_counter() - started, 6), "passed": sum(item.status == "passed" for item in items), "with_differences": sum(item.status == "differences" for item in items), "failed": sum(item.status == "failed" for item in items)}
+    return {"batch_id": batch_id, "items": [asdict(item) for item in items], "total": len(items), "elapsed": round(perf_counter() - started, 6), "passed": sum(item.status == "passed" for item in items), "with_differences": sum(item.status == "differences" for item in items), "failed": sum(item.status == "failed" for item in items)}
 
 
 def history_summary(store_path="recon_history.db", limit=100):

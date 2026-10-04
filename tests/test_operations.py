@@ -16,7 +16,7 @@ def _rules(root, name, value="1"):
 def test_run_batch_persists_each_result(tmp_path):
     first, second = _rules(tmp_path, "first"), _rules(tmp_path, "second")
     result = run_batch([first, second], tmp_path / "history.db")
-    assert result["total"] == 2 and result["passed"] == 2
+    assert result["total"] == 2 and result["passed"] == 2 and result["batch_id"]
     assert all(item["history_id"] for item in result["items"])
 
 
@@ -33,6 +33,14 @@ def test_history_summary_and_review_queue(tmp_path):
     queue = review_queue(tmp_path / "history.db")
     assert summary["total_runs"] == 1 and summary["difference_total"] == 1
     assert queue["total"] == 1 and queue["items"][0]["history_id"] == history_id
+
+
+def test_batch_is_queryable(tmp_path):
+    rule = _rules(tmp_path, "tracked")
+    result = run_batch([rule], tmp_path / "history.db", name="nightly")
+    with ResultStore(tmp_path / "history.db") as store:
+        batch = store.batches()[0]
+    assert batch["id"] == result["batch_id"] and batch["status"] == "completed"
 
 
 def test_export_history(tmp_path):
