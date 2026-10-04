@@ -61,3 +61,4 @@ recon-helper 涉及的核心概念与术语，按功能域分组。
 - **趋势偏离（Trend Deviation）**：连续多期数据偏离线性趋势线超过阈值时的自动标记。
 - **端到端测试（Integration Test）**：用 FastAPI TestClient 走通"上传→核对→复核→报告"完整链路的自动化验证。
 - **架构文档（Architecture Doc）**：描述模块划分、数据流与依赖关系的说明文档（docs/architecture.md）。
+- **场景画廊（Scenario Gallery）**：全部业务场景的分类索引文档（docs/examples-gallery.md），按金融专项/通用对账/教学演示三类组织。
