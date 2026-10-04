@@ -8,3 +8,9 @@ def test_infer_common_types():
     assert infer(["true", "FALSE"]) == "boolean"
     assert infer(["2026-10-02", "2026-10-03"]) == "date"
     assert infer(["001", "text"]) == "text"
+
+
+def test_infer_multiple_date_formats():
+    assert infer(["2024/1/1", "2024/1/2"]) == "date"
+    assert infer(["20240101", "20240102"]) == "date"
+    assert infer(["2024-01-01T12:30:00", "2024-01-02T00:00:00"]) == "date"

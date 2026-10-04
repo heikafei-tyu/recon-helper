@@ -76,3 +76,10 @@ def test_empty_extension_is_reported_as_unsupported(tmp_path):
     path.write_text("id\n1\n", encoding="utf-8")
     with pytest.raises(ReadError, match="不支持的文件格式"):
         read_table(path)
+
+
+def test_row_width_error_reports_expected_and_actual(tmp_path):
+    path = tmp_path / "bad.csv"
+    path.write_text("id,amount\nA1\n", encoding="utf-8")
+    with pytest.raises(ReadError, match="期望 2 列，实际 1 列"):
+        read_table(path)

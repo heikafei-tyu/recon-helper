@@ -12,6 +12,6 @@ def read(path, encoding=None):
         if header is None:
             raise ReadError("TSV 文件为空")
         table = Table.from_records(header, records)
-        return Table(table.columns, table.rows, str(path), "csv", encoding or "auto", "\t")
+        return Table(table.columns, table.rows, str(path), "tsv", encoding or "auto", "\t")
     except csv.Error as exc:
         raise ReadError(f"TSV 格式错误：{exc}") from exc

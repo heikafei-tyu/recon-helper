@@ -15,4 +15,5 @@ def read(path, encoding=None):
     columns = list(records[0])
     if any(set(record) != set(columns) for record in records):
         raise ReadError("JSON 每行字段必须一致")
-    return Table.from_records(columns, ([record[c] for c in columns] for record in records))
+    table = Table.from_records(columns, ([record[c] for c in columns] for record in records))
+    return Table(table.columns, table.rows, str(path), "json", encoding or "auto")
