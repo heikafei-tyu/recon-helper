@@ -54,6 +54,28 @@ def validate_rules(filename):
             errors.append(f"tolerance.{name} 必须是对象或对象列表")
             continue
         for item in rules:
+            tiers = item.get("tiers")
+            if tiers is not None:
+                if not isinstance(tiers, list) or not tiers:
+                    errors.append(f"tolerance.{name}.tiers 必须是非空列表")
+                else:
+                    previous = None
+                    for index, tier in enumerate(tiers):
+                        if not isinstance(tier, dict) or "absolute" not in tier:
+                            errors.append(f"tolerance.{name}.tiers[{index}] 缺少 absolute")
+                            continue
+                        try:
+                            absolute = float(tier["absolute"])
+                            upper = None if tier.get("up_to") is None else float(tier["up_to"])
+                            if absolute < 0: errors.append(f"tolerance.{name}.tiers[{index}].absolute 不能为负")
+                            if upper is not None and upper <= 0: errors.append(f"tolerance.{name}.tiers[{index}].up_to 必须为正数")
+                            if previous is not None and upper is not None and upper <= previous: errors.append(f"tolerance.{name}.tiers 区间重叠或金额倒挂")
+                            if previous is not None and upper is None and index != len(tiers) - 1: errors.append(f"tolerance.{name}.tiers 无上限档位必须放在最后")
+                            previous = upper if upper is not None else previous
+                        except (TypeError, ValueError):
+                            errors.append(f"tolerance.{name}.tiers[{index}] 数值格式错误")
+                    if tiers[-1].get("up_to") is not None:
+                        errors.append(f"tolerance.{name}.tiers 存在边界缺口：最后一档必须无上限")
             for field in ("absolute", "relative"):
                 if field in item:
                     try:
