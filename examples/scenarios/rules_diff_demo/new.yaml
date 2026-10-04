@@ -1,0 +1,6 @@
+left: left.csv
+right: right.csv
+key: account_id
+columns: [amount, tax]
+tolerance:
+  amount: {absolute: 10}

@@ -1,0 +1,6 @@
+left: left.csv
+right: right.csv
+key: id
+columns: [amount]
+tolerance:
+  amount: {absolute: 1}

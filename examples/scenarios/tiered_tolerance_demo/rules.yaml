@@ -1,0 +1,16 @@
+left: left.csv
+right: right.csv
+key: id
+columns: [amount]
+tolerance:
+  amount:
+    name: amount-tier
+    tiers:
+      - name: under-10k
+        up_to: 10000
+        absolute: 1
+      - name: under-100k
+        up_to: 100000
+        absolute: 10
+      - name: over-100k
+        absolute: 100

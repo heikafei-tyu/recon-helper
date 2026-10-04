@@ -1,0 +1,9 @@
+tasks:
+  - name: detail
+    rules: rules.yaml
+  - name: summary
+    rules: rules.yaml
+    depends_on: [detail]
+  - name: final
+    rules: rules.yaml
+    depends_on: [summary]
