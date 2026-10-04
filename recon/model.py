@@ -24,7 +24,7 @@ class Table:
         rows = []
         for number, record in enumerate(records, 2):
             if len(record) != len(columns):
-                raise ReadError(f"第 {number} 行列数与表头不一致")
+                raise ReadError(f"第 {number} 行列数与表头不一致：期望 {len(columns)} 列，实际 {len(record)} 列")
             rows.append(tuple(None if v is None or v == "" else str(v) for v in record))
         return cls(columns, tuple(rows))
 
