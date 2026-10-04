@@ -7,7 +7,16 @@ from recon.doctor import doctor
 def test_doctor_reports_required_environment_checks(tmp_path):
     result = doctor(tmp_path)
     names = {item["check"] for item in result["checks"]}
-    assert names == {"python", "dependencies", "encoding", "disk", "config", "history_db"}
+    assert names == {
+        "python",
+        "dependencies",
+        "encoding",
+        "disk",
+        "config",
+        "rules_files",
+        "output_writable",
+        "history_db",
+    }
     assert all(item["status"] in {"PASS", "FAIL"} for item in result["checks"])
 
 

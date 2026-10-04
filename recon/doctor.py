@@ -59,6 +59,26 @@ def doctor(root=None, db_path=None):
         checks.append(_check("config", True, config.get("config_file") or "defaults"))
     except Exception as exc:
         checks.append(_check("config", False, exc))
+    rules_broken = []
+    for rules_path in sorted(root.glob("examples/scenarios/*/rules.yaml")) + sorted(root.glob("rules.yaml")):
+        try:
+            import yaml
+
+            data = yaml.safe_load(rules_path.read_text(encoding="utf-8"))
+            if not isinstance(data, dict) or "rules" not in data:
+                rules_broken.append(f"{rules_path.parent.name}: 缺少 rules 键")
+        except Exception as exc:
+            rules_broken.append(f"{rules_path.parent.name}: {exc}")
+    checks.append(_check("rules_files", not rules_broken, "ok" if not rules_broken else "; ".join(rules_broken[:3])))
+    out_dir = root / "reports"
+    try:
+        out_dir.mkdir(parents=True, exist_ok=True)
+        probe = out_dir / ".doctor_probe"
+        probe.write_text("ok", encoding="utf-8")
+        probe.unlink()
+        checks.append(_check("output_writable", True, str(out_dir)))
+    except Exception as exc:
+        checks.append(_check("output_writable", False, exc))
     database = Path(db_path or root / "recon_history.db")
     if database.exists():
         try:
