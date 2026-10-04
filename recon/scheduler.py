@@ -18,6 +18,7 @@ def _next_at(hhmm):
 
 def start(name, rules_file, at="00:00", interval=None):
     if name in _jobs: raise ValueError(f"任务已存在：{name}")
+    with ResultStore() as store: store.save_job(name, rules_file, at if interval is None else f"interval:{interval}", "running")
     stop_event = threading.Event(); job = {"name": name, "rules": str(rules_file), "at": at, "next_run": _next_at(at).isoformat(), "last_result": None, "status": "running", "stop": stop_event}
     def worker():
         while not stop_event.is_set():
@@ -26,9 +27,11 @@ def start(name, rules_file, at="00:00", interval=None):
             try:
                 result = run_rules(rules_file)
                 with ResultStore() as store: store.save({"rules": str(rules_file)}, result)
+                with ResultStore() as store: store.update_job_run(name)
                 job["last_result"] = {"differences": len(result.get("differences", [])), "at": datetime.now().isoformat()}
             except Exception as exc:
                 job["last_result"] = {"error": str(exc), "at": datetime.now().isoformat()}
+                with ResultStore() as store: store.update_job_run(name, str(exc))
             job["next_run"] = (_next_at(at) if interval is None else datetime.now() + timedelta(seconds=float(interval))).isoformat()
     thread = threading.Thread(target=worker, name=f"recon-schedule-{name}", daemon=True); job["thread"] = thread
     with _lock: _jobs[name] = job
@@ -38,11 +41,17 @@ def start(name, rules_file, at="00:00", interval=None):
 def stop(name):
     with _lock: job = _jobs.get(name)
     if not job: raise ValueError(f"任务不存在：{name}")
-    job["stop"].set(); job["status"] = "stopped"; return public_job(job)
+    job["stop"].set(); job["status"] = "stopped"
+    with ResultStore() as store: store.save_job(name, job["rules"], job["at"], "stopped")
+    return public_job(job)
 
 
 def list_jobs():
-    with _lock: return [public_job(job) for job in _jobs.values()]
+    with _lock: active = [public_job(job) for job in _jobs.values()]
+    with ResultStore() as store:
+        persisted = {item["name"]: item for item in store.jobs()}
+    for item in active: persisted[item["name"]].update(item)
+    return list(persisted.values())
 
 
 def public_job(job):

@@ -16,7 +16,7 @@ class ResultStore:
         except sqlite3.OperationalError:
             # Another initializer may hold the schema lock; normal writes still use the busy timeout.
             pass
-        self.db.executescript("CREATE TABLE IF NOT EXISTS results (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, rules TEXT NOT NULL, fingerprints TEXT NOT NULL, severity TEXT NOT NULL, difference_count INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS diffs (id INTEGER PRIMARY KEY, result_id INTEGER NOT NULL REFERENCES results(id) ON DELETE CASCADE, table_name TEXT, severity TEXT, payload TEXT NOT NULL); CREATE TABLE IF NOT EXISTS audit_log (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, actor TEXT NOT NULL, method TEXT NOT NULL, path TEXT NOT NULL, status INTEGER NOT NULL)")
+        self.db.executescript("CREATE TABLE IF NOT EXISTS results (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, rules TEXT NOT NULL, fingerprints TEXT NOT NULL, severity TEXT NOT NULL, difference_count INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS diffs (id INTEGER PRIMARY KEY, result_id INTEGER NOT NULL REFERENCES results(id) ON DELETE CASCADE, table_name TEXT, severity TEXT, payload TEXT NOT NULL); CREATE TABLE IF NOT EXISTS audit_log (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, actor TEXT NOT NULL, method TEXT NOT NULL, path TEXT NOT NULL, status INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS jobs (name TEXT PRIMARY KEY, rules_file TEXT NOT NULL, schedule TEXT NOT NULL, status TEXT NOT NULL, run_count INTEGER NOT NULL DEFAULT 0, failure_count INTEGER NOT NULL DEFAULT 0, last_run TEXT, last_error TEXT)")
         self.db.commit()
 
     def save(self, rules, result, fingerprints=None):
@@ -49,6 +49,15 @@ class ResultStore:
 
     def audits(self, limit=100):
         return [{"created_at": row[0], "actor": row[1], "method": row[2], "path": row[3], "status": row[4]} for row in self.db.execute("SELECT created_at,actor,method,path,status FROM audit_log ORDER BY id DESC LIMIT ?", (limit,))]
+
+    def save_job(self, name, rules_file, schedule, status="stopped"):
+        self.db.execute("INSERT INTO jobs(name,rules_file,schedule,status) VALUES(?,?,?,?) ON CONFLICT(name) DO UPDATE SET rules_file=excluded.rules_file,schedule=excluded.schedule,status=excluded.status", (name, str(rules_file), schedule, status)); self.db.commit()
+
+    def update_job_run(self, name, error=None):
+        self.db.execute("UPDATE jobs SET run_count=run_count+1,last_run=CURRENT_TIMESTAMP,last_error=?,failure_count=failure_count+? WHERE name=?", (error, 1 if error else 0, name)); self.db.commit()
+
+    def jobs(self):
+        return [{"name": row[0], "rules": row[1], "schedule": row[2], "status": row[3], "run_count": row[4], "failure_count": row[5], "last_run": row[6], "last_error": row[7]} for row in self.db.execute("SELECT name,rules_file,schedule,status,run_count,failure_count,last_run,last_error FROM jobs ORDER BY name")]
 
     def close(self): self.db.close()
     def __enter__(self): return self
