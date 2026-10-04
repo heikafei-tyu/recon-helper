@@ -61,6 +61,8 @@ python -m pytest -q
 | `rules` | 规则版本对比 | [rules](docs/manual/run.md) |
 | `plan` | 计划编排执行 | [plan](docs/execution-plan.md) |
 | `schedule` | 定时核对调度 | [schedule](docs/manual/history.md) |
+| `batch` | 批量运维编排 | [batch](docs/operations.md) |
+| `diff` | 规则版本对比 | [diff](docs/manual/run.md) |
 | `ops` | 批量运维编排 | [operations](docs/operations.md) |
 | `list` / `logs` / `show` | 调度与历史查询 | [schedule](docs/manual/history.md) |
 | `start` / `stop` / `use` | 配置切换 | [profiles](docs/profiles.md) |
