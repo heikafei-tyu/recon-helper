@@ -14,8 +14,11 @@ from .quality import assess_file
 
 def create_html_report(rules_file, output):
     result = run_rules(rules_file)
+    for difference in result["differences"]:
+        difference.setdefault("review_status", "未处理")
+        difference.setdefault("review_note", "")
     rows = result["differences"]
-    columns = ["key", "status", "column", "left_value", "right_value", "difference"]
+    columns = ["key", "status", "review_status", "review_note", "column", "left_value", "right_value", "difference"]
     def esc(value):
         return str(value).replace("&", "&amp;").replace("<", "&lt;").replace('"', "&quot;")
     body = "".join("<tr data-status='{}' data-table='{}' title='上下文：{}'>".format(esc(row.get("status", "")), esc(row.get("left_table", row.get("from", ""))), esc(row.get("key", ""))) + "".join(f"<td>{esc(row.get(column, ''))}</td>" for column in columns) + "</tr>" for row in rows)
@@ -70,6 +73,9 @@ def create_report(rules_file, output, incremental=False, force=False, template="
         if valid:
             return {"output": str(output), "skipped": True}
     result = run_rules(rules_file)
+    for difference in result["differences"]:
+        difference.setdefault("review_status", "未处理")
+        difference.setdefault("review_note", "")
     quality_scores = []
     quality_config = config.get("quality", {}) if isinstance(config.get("quality", {}), dict) else {}
     threshold = quality_config.get("threshold", 70)
@@ -82,7 +88,7 @@ def create_report(rules_file, output, incremental=False, force=False, template="
     summary = book.active
     summary.title = "Summary"
     rows = result["differences"]
-    preferred = ["key", "status", "left_table", "right_table", "left_row", "right_row", "column", "left_value", "right_value", "difference", "tolerance", "tolerance_type", "tolerance_rule", "rule_priority"]
+    preferred = ["key", "status", "review_status", "review_note", "left_table", "right_table", "left_row", "right_row", "column", "left_value", "right_value", "difference", "tolerance", "tolerance_type", "tolerance_rule", "rule_priority"]
     columns = [key for key in preferred if any(key in row for row in rows)] or ["status"]
     def add_detail_sheet(title, selected):
         sheet = book.create_sheet(title)

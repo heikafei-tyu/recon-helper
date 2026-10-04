@@ -16,7 +16,12 @@ class ResultStore:
         except sqlite3.OperationalError:
             # Another initializer may hold the schema lock; normal writes still use the busy timeout.
             pass
-        self.db.executescript("CREATE TABLE IF NOT EXISTS results (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, rules TEXT NOT NULL, fingerprints TEXT NOT NULL, severity TEXT NOT NULL, difference_count INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS diffs (id INTEGER PRIMARY KEY, result_id INTEGER NOT NULL REFERENCES results(id) ON DELETE CASCADE, table_name TEXT, severity TEXT, payload TEXT NOT NULL); CREATE TABLE IF NOT EXISTS audit_log (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, actor TEXT NOT NULL, method TEXT NOT NULL, path TEXT NOT NULL, status INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS jobs (name TEXT PRIMARY KEY, rules_file TEXT NOT NULL, schedule TEXT NOT NULL, status TEXT NOT NULL, run_count INTEGER NOT NULL DEFAULT 0, failure_count INTEGER NOT NULL DEFAULT 0, last_run TEXT, last_error TEXT)")
+        self.db.executescript("CREATE TABLE IF NOT EXISTS results (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, rules TEXT NOT NULL, fingerprints TEXT NOT NULL, severity TEXT NOT NULL, difference_count INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS diffs (id INTEGER PRIMARY KEY, result_id INTEGER NOT NULL REFERENCES results(id) ON DELETE CASCADE, table_name TEXT, severity TEXT, payload TEXT NOT NULL, review_status TEXT NOT NULL DEFAULT '未处理', review_note TEXT NOT NULL DEFAULT ''); CREATE TABLE IF NOT EXISTS audit_log (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, actor TEXT NOT NULL, method TEXT NOT NULL, path TEXT NOT NULL, status INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS jobs (name TEXT PRIMARY KEY, rules_file TEXT NOT NULL, schedule TEXT NOT NULL, status TEXT NOT NULL, run_count INTEGER NOT NULL DEFAULT 0, failure_count INTEGER NOT NULL DEFAULT 0, last_run TEXT, last_error TEXT)")
+        columns = {row[1] for row in self.db.execute("PRAGMA table_info(diffs)")}
+        if "review_status" not in columns:
+            self.db.execute("ALTER TABLE diffs ADD COLUMN review_status TEXT NOT NULL DEFAULT '未处理'")
+        if "review_note" not in columns:
+            self.db.execute("ALTER TABLE diffs ADD COLUMN review_note TEXT NOT NULL DEFAULT ''")
         self.db.commit()
 
     def save(self, rules, result, fingerprints=None):
@@ -34,8 +39,24 @@ class ResultStore:
         sql += " ORDER BY id DESC LIMIT ?"; args.append(limit)
         rows = []
         for row in self.db.execute(sql, args):
-            rows.append({"id": row[0], "created_at": row[1], "rules": json.loads(row[2]), "files": json.loads(row[3]), "severity": row[4], "difference_count": row[5], "differences": [json.loads(item[0]) for item in self.db.execute("SELECT payload FROM diffs WHERE result_id=?", (row[0],))]})
+            differences = []
+            for item in self.db.execute("SELECT payload,review_status,review_note,id FROM diffs WHERE result_id=?", (row[0],)):
+                difference = json.loads(item[0]); difference.update({"review_status": item[1], "review_note": item[2], "diff_id": item[3]}); differences.append(difference)
+            rows.append({"id": row[0], "created_at": row[1], "rules": json.loads(row[2]), "files": json.loads(row[3]), "severity": row[4], "difference_count": row[5], "differences": differences})
         return rows
+
+    def review(self, result_id, status, note="", diff_ids=None):
+        allowed = {"未处理", "已确认无误", "已修复"}
+        if status not in allowed:
+            raise ValueError("复核状态必须是：未处理、已确认无误、已修复")
+        if diff_ids:
+            placeholders = ",".join("?" for _ in diff_ids)
+            args = [status, note, result_id, *diff_ids]
+            cursor = self.db.execute(f"UPDATE diffs SET review_status=?,review_note=? WHERE result_id=? AND id IN ({placeholders})", args)
+        else:
+            cursor = self.db.execute("UPDATE diffs SET review_status=?,review_note=? WHERE result_id=?", (status, note, result_id))
+        self.db.commit()
+        return {"history_id": result_id, "updated": cursor.rowcount, "status": status, "note": note}
 
     def migrate_json(self, directory="history"):
         count = 0

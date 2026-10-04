@@ -17,6 +17,7 @@ from .plan import plan_from_config
 from .execution import RetryPolicy
 from .rules_diff import diff_rules
 from .notify import NotificationSettings, notify_result
+from .store import ResultStore
 import yaml
 
 
@@ -86,6 +87,11 @@ def main(argv=None):
     rules_diff_cmd = rules_commands.add_parser("diff", help="比较两版 YAML 规则")
     rules_diff_cmd.add_argument("old")
     rules_diff_cmd.add_argument("new")
+    review = commands.add_parser("review", help="批量更新差异复核状态")
+    review.add_argument("history_id", type=int)
+    review.add_argument("--status", required=True, choices=["未处理", "已确认无误", "已修复"])
+    review.add_argument("--note", default="")
+    review.add_argument("--diff-id", action="append", type=int)
     args = parser.parse_args(argv)
     try:
         if args.command == "init":
@@ -107,6 +113,9 @@ def main(argv=None):
             )
         elif args.command == "rules":
             result = diff_rules(args.old, args.new)
+        elif args.command == "review":
+            with ResultStore() as store:
+                result = store.review(args.history_id, args.status, args.note, args.diff_id)
         elif args.command == "profile":
             if args.profile_command == "list":
                 result = {"profiles": list_profiles()}
