@@ -35,7 +35,9 @@ def load_config(start=None):
     path = root / ".reconrc"
     values = dict(DEFAULTS)
     if path.exists():
-        data = yaml.safe_load(path.read_text(encoding="utf-8-sig")) or {}
+        data = yaml.safe_load(path.read_text(encoding="utf-8-sig"))
+        if data is None:
+            data = {}
         if not isinstance(data, dict):
             raise ValueError(".reconrc 必须是 YAML 对象")
         values.update({key: value for key, value in data.items() if key in DEFAULTS})

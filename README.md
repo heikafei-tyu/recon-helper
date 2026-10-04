@@ -1,5 +1,9 @@
 # recon-helper
 
+![Python](https://img.shields.io/badge/python-3.10%2B-3776AB) ![Tests](https://img.shields.io/badge/tests-pytest-brightgreen) ![License](https://img.shields.io/badge/license-MIT-blue)
+
+徽章说明：Python 徽章表示最低运行版本；Tests 表示项目使用 pytest 验证（运行状态以本地/CI 最新结果为准）；License 指向仓库的 MIT 许可证。
+
 本地优先的财务与业务报表核对工具。读取 CSV、TSV、JSON、XLSX，按 YAML 规则定位缺失、金额差异、合计错误和跨期勾稽问题，并生成可审计报告。
 
 ## 功能特性
@@ -30,6 +34,7 @@ python -m pytest -q
 | `init` | 规则向导 | [init](docs/manual/init.md) |
 | `validate` | 规则预检查 | [run](docs/manual/run.md) |
 | `profile` | 配置预设 | [profiles](docs/profiles.md) |
+| `doctor` | 本机环境体检 | 本页“文档索引” |
 
 ## 最小规则
 
@@ -83,6 +88,16 @@ API `POST /reconcile` 支持 `page` 和 `page_size` 分页参数，`GET /history
 - 生成规则：执行 `python -m recon init`。
 
 详见 [FAQ](docs/faq.md) 和 [故障排查](docs/troubleshooting.md)。
+
+## 文档索引
+
+- [命令手册](docs/manual/)：`read`、`run`、`report`、`bench`、`history`、`init`，以及[故障排查](docs/manual/troubleshooting.md)和[升级迁移](docs/manual/upgrade.md)。
+- [规则语法](docs/rules-syntax.md)与[容差指南](docs/tolerance-guide.md)。
+- [Web/API 使用](docs/web.md)、[性能说明](docs/performance.md)和[部署指南](DEPLOYMENT.md)。
+- [场景分类目录](docs/scenarios-catalog.md)与[场景图库](docs/examples-gallery.md)。
+- [质量评分](docs/quality.md)、[通知](docs/notify.md)、[配置 Profile](docs/profiles.md)和[插件](docs/plugins.md)。
+
+运行 `recon doctor` 可检查 Python/依赖、编码、磁盘空间、`.reconrc` 和历史数据库健康度；体检结果以表格数据形式输出为 JSON，状态分为 `PASS` 和 `FAIL`。
 
 ## 数据质量与通知
 

@@ -20,6 +20,7 @@ from .notify import NotificationSettings, notify_result
 from .store import ResultStore
 from .dryrun import dry_run
 from .operations import run_batch, history_summary, review_queue, export_history
+from .doctor import doctor
 import yaml
 
 
@@ -104,6 +105,7 @@ def main(argv=None):
     review.add_argument("--status", required=True, choices=["未处理", "已确认无误", "已修复"])
     review.add_argument("--note", default="")
     review.add_argument("--diff-id", action="append", type=int)
+    commands.add_parser("doctor", help="体检本机运行环境")
     args = parser.parse_args(argv)
     try:
         if args.command == "init":
@@ -134,6 +136,8 @@ def main(argv=None):
             result = run_batch(args.rules, stop_on_error=args.stop_on_error, name=args.name)
         elif args.command == "ops":
             result = history_summary() if args.view == "summary" else review_queue()
+        elif args.command == "doctor":
+            result = doctor()
         elif args.command == "profile":
             if args.profile_command == "list":
                 result = {"profiles": list_profiles()}

@@ -1,0 +1,4 @@
+note_id,transaction_id,transaction_date,state,from_holder,to_holder,amount,remaining_balance
+票据-001,E-001,2024-01-10,取得,本公司,客户甲,200000,200000
+票据-001,E-002,2024-02-15,背书转让,客户甲,供应商乙,200000,200000
+票据-001,E-003,2024-04-20,到期兑付,供应商乙,银行,200000,0
