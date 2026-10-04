@@ -9,10 +9,17 @@ from openpyxl.styles import Font, PatternFill
 
 from .engine import run_rules
 from .fingerprint_store import FingerprintStore
+from .quality import assess_file
 
 
 def create_html_report(rules_file, output):
     result = run_rules(rules_file)
+    quality_scores = []
+    threshold = config.get("quality", {}).get("threshold", 70) if isinstance(config.get("quality", {}), dict) else 70
+    for source_name in source_names[:2]:
+        if source_name and (rules_path.parent / source_name).exists():
+            quality_scores.append(assess_file(rules_path.parent / source_name, config.get("keys", [config.get("key")]) if config.get("key") or config.get("keys") else None, threshold=threshold))
+    result["quality_scores"] = quality_scores
     rows = result["differences"]
     columns = ["key", "status", "column", "left_value", "right_value", "difference"]
     def esc(value):
@@ -109,6 +116,14 @@ def create_report(rules_file, output, incremental=False, force=False, template="
     summary_rows = [("tool_version", "0.1.0"), ("run_at_utc", datetime.now(timezone.utc).isoformat()), ("rules_file", str(rules_path)), ("left_file", str(sources[1]) if len(sources) > 1 else None), ("right_file", str(sources[2]) if len(sources) > 2 else None), ("left_sha256", manifest.get(str(sources[1])) if len(sources) > 1 else None), ("right_sha256", manifest.get(str(sources[2])) if len(sources) > 2 else None), ("left_rows", result.get("left_rows", 0)), ("right_rows", result.get("right_rows", 0)), ("differences", len(rows)), ("conclusion", "通过" if not rows else "存在差异"), *counts.items()]
     for key, value in summary_rows:
         summary.append([key, value])
+    if quality_scores:
+        summary.append(["quality_scores", ""])
+        for quality in quality_scores:
+            row = summary.max_row + 1
+            summary.append([quality["source"] or "input", quality["score"]])
+            if not quality["passed"]:
+                for cell in summary[row]:
+                    cell.fill = PatternFill("solid", fgColor="FFC7CE")
     try:
         import matplotlib
         matplotlib.use("Agg")
