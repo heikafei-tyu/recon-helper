@@ -14,6 +14,7 @@ python -m pip install -e .
 python -m recon read examples/orders.csv
 python -m recon run examples/rules.yaml
 python -m recon report examples/rules.yaml --out output/reconciliation.xlsx
+python -m recon run examples/rules.yaml --notify-webhook https://hooks.example.test/recon
 python -m pytest -q
 ```
 
@@ -76,6 +77,13 @@ Web 页面支持上传核对、历史筛选、结果排序和静态资源导出�
 - 生成规则：执行 `python -m recon init`。
 
 详见 [FAQ](docs/faq.md) 和 [故障排查](docs/troubleshooting.md)。
+
+## 数据质量与通知
+
+报告会按空值率、类型错误率、重复率和主键唯一性对左右输入表评分，配置
+`quality.threshold` 可设置红色告警阈值。`recon run` 支持 `--notify-webhook`
+或 SMTP 参数推送完成摘要；出现致命差异时会强制通知。详见
+[质量评分](docs/quality.md) 和 [通知](docs/notify.md)。
 
 ## 场景与安全
 

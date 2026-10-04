@@ -16,6 +16,7 @@ from .scheduler import list_jobs, start as schedule_start, stop as schedule_stop
 from .plan import plan_from_config
 from .execution import RetryPolicy
 from .rules_diff import diff_rules
+from .notify import NotificationSettings, notify_result
 import yaml
 
 
@@ -31,6 +32,11 @@ def main(argv=None):
     run.add_argument("rules")
     run.add_argument("--timeout", type=float)
     run.add_argument("--progress", action="store_true")
+    run.add_argument("--notify-webhook")
+    run.add_argument("--smtp-host")
+    run.add_argument("--smtp-port", type=int, default=25)
+    run.add_argument("--smtp-to")
+    run.add_argument("--smtp-from")
     validate = commands.add_parser("validate", help="预检查规则和输入字段")
     validate.add_argument("rules")
     bench = commands.add_parser("bench", help="流式统计 CSV 性能")
@@ -113,6 +119,8 @@ def main(argv=None):
             result = {"valid": True, "rules": args.rules}
         elif args.command == "run":
             result = run_rules(args.rules, timeout=args.timeout, progress=args.progress)
+            if any(getattr(args, name, None) for name in ("notify_webhook", "smtp_host", "smtp_to")):
+                result["notification"] = notify_result(result, NotificationSettings(args.notify_webhook, args.smtp_host, args.smtp_port, args.smtp_to, args.smtp_from, enabled=True))
         elif args.command == "bench":
             result = benchmark_generated(timeout=args.timeout, progress=args.progress) if args.file is None else benchmark(args.file, args.key, not args.no_duplicate_check, args.timeout, args.progress)
             if args.json_out:
