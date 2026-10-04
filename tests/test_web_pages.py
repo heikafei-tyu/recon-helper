@@ -1,7 +1,7 @@
 import pytest
 
 httpx = pytest.importorskip("httpx")
-from recon.api import app
+from recon.api import app  # noqa: E402
 
 
 @pytest.mark.anyio
