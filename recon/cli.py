@@ -12,7 +12,7 @@ from .init_wizard import run_wizard
 from .profiles import list_profiles, show_profile, use_profile
 from .readers import read_table
 from .report import create_report
-from .scheduler import list_jobs, start as schedule_start, stop as schedule_stop
+from .scheduler import list_jobs, run_logs, start as schedule_start, stop as schedule_stop
 from .plan import plan_from_config
 from .execution import RetryPolicy
 from .rules_diff import diff_rules
@@ -78,6 +78,7 @@ def main(argv=None):
     start_schedule = schedule_commands.add_parser("start"); start_schedule.add_argument("name"); start_schedule.add_argument("rules"); start_schedule.add_argument("--at", default="00:00"); start_schedule.add_argument("--interval", type=float)
     stop_schedule = schedule_commands.add_parser("stop"); stop_schedule.add_argument("name")
     schedule_commands.add_parser("list")
+    logs_schedule = schedule_commands.add_parser("logs"); logs_schedule.add_argument("--limit", type=int, default=20)
     plan = commands.add_parser("plan", help="按依赖计划执行多个规则")
     plan.add_argument("action_or_config", help="run 或 YAML 计划文件")
     plan.add_argument("config", nargs="?", help="使用 run 时的 YAML 计划文件")
@@ -110,7 +111,7 @@ def main(argv=None):
         elif args.command == "config":
             result = load_config()
         elif args.command == "schedule":
-            result = schedule_start(args.name, args.rules, args.at, args.interval) if args.schedule_command == "start" else schedule_stop(args.name) if args.schedule_command == "stop" else {"jobs": list_jobs()}
+            result = schedule_start(args.name, args.rules, args.at, args.interval) if args.schedule_command == "start" else schedule_stop(args.name) if args.schedule_command == "stop" else {"jobs": list_jobs()} if args.schedule_command == "list" else run_logs(args.limit)
         elif args.command == "history":
             result = compare_history(args.dir, *args.compare) if args.compare else {"history": load_history(args.dir)}
         elif args.command == "plan":

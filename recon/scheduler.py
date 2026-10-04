@@ -24,14 +24,21 @@ def start(name, rules_file, at="00:00", interval=None):
         while not stop_event.is_set():
             wait = max(0.05, ((_next_at(at) - datetime.now()).total_seconds() if interval is None else float(interval)))
             if stop_event.wait(wait): break
+            started_at = datetime.now().isoformat()
+            started = time.perf_counter()
             try:
                 result = run_rules(rules_file)
+                difference_count = len(result.get("differences", []))
                 with ResultStore() as store: store.save({"rules": str(rules_file)}, result)
-                with ResultStore() as store: store.update_job_run(name)
-                job["last_result"] = {"differences": len(result.get("differences", [])), "at": datetime.now().isoformat()}
+                with ResultStore() as store:
+                    store.update_job_run(name)
+                    store.save_scheduler_run(name, rules_file, "differences" if difference_count else "passed", difference_count, time.perf_counter() - started, started_at=started_at)
+                job["last_result"] = {"differences": difference_count, "at": datetime.now().isoformat()}
             except Exception as exc:
                 job["last_result"] = {"error": str(exc), "at": datetime.now().isoformat()}
-                with ResultStore() as store: store.update_job_run(name, str(exc))
+                with ResultStore() as store:
+                    store.update_job_run(name, str(exc))
+                    store.save_scheduler_run(name, rules_file, "failed", elapsed=time.perf_counter() - started, error=str(exc), started_at=started_at)
             job["next_run"] = (_next_at(at) if interval is None else datetime.now() + timedelta(seconds=float(interval))).isoformat()
     thread = threading.Thread(target=worker, name=f"recon-schedule-{name}", daemon=True); job["thread"] = thread
     with _lock: _jobs[name] = job
@@ -56,3 +63,9 @@ def list_jobs():
 
 def public_job(job):
     return {key: value for key, value in job.items() if key not in {"stop", "thread"}}
+
+
+def run_logs(limit=100):
+    """Return recent scheduler execution logs for the CLI and API."""
+    with ResultStore() as store:
+        return {"runs": store.scheduler_runs(limit)}

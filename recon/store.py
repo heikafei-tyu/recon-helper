@@ -16,7 +16,7 @@ class ResultStore:
         except sqlite3.OperationalError:
             # Another initializer may hold the schema lock; normal writes still use the busy timeout.
             pass
-        self.db.executescript("CREATE TABLE IF NOT EXISTS results (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, rules TEXT NOT NULL, fingerprints TEXT NOT NULL, severity TEXT NOT NULL, difference_count INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS diffs (id INTEGER PRIMARY KEY, result_id INTEGER NOT NULL REFERENCES results(id) ON DELETE CASCADE, table_name TEXT, severity TEXT, payload TEXT NOT NULL, review_status TEXT NOT NULL DEFAULT '未处理', review_note TEXT NOT NULL DEFAULT ''); CREATE TABLE IF NOT EXISTS audit_log (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, actor TEXT NOT NULL, method TEXT NOT NULL, path TEXT NOT NULL, status INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS jobs (name TEXT PRIMARY KEY, rules_file TEXT NOT NULL, schedule TEXT NOT NULL, status TEXT NOT NULL, run_count INTEGER NOT NULL DEFAULT 0, failure_count INTEGER NOT NULL DEFAULT 0, last_run TEXT, last_error TEXT); CREATE TABLE IF NOT EXISTS batches (id INTEGER PRIMARY KEY, name TEXT NOT NULL, created_at TEXT NOT NULL, status TEXT NOT NULL, task_count INTEGER NOT NULL, completed_count INTEGER NOT NULL DEFAULT 0); CREATE TABLE IF NOT EXISTS batch_tasks (id INTEGER PRIMARY KEY, batch_id INTEGER NOT NULL REFERENCES batches(id) ON DELETE CASCADE, name TEXT NOT NULL, rules_file TEXT NOT NULL, status TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, result_id INTEGER, elapsed REAL NOT NULL DEFAULT 0, error TEXT)")
+        self.db.executescript("CREATE TABLE IF NOT EXISTS results (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, rules TEXT NOT NULL, fingerprints TEXT NOT NULL, severity TEXT NOT NULL, difference_count INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS diffs (id INTEGER PRIMARY KEY, result_id INTEGER NOT NULL REFERENCES results(id) ON DELETE CASCADE, table_name TEXT, severity TEXT, payload TEXT NOT NULL, review_status TEXT NOT NULL DEFAULT '未处理', review_note TEXT NOT NULL DEFAULT ''); CREATE TABLE IF NOT EXISTS audit_log (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, actor TEXT NOT NULL, method TEXT NOT NULL, path TEXT NOT NULL, status INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS jobs (name TEXT PRIMARY KEY, rules_file TEXT NOT NULL, schedule TEXT NOT NULL, status TEXT NOT NULL, run_count INTEGER NOT NULL DEFAULT 0, failure_count INTEGER NOT NULL DEFAULT 0, last_run TEXT, last_error TEXT); CREATE TABLE IF NOT EXISTS scheduler_runs (id INTEGER PRIMARY KEY, job_name TEXT NOT NULL, started_at TEXT NOT NULL, rules_file TEXT NOT NULL, status TEXT NOT NULL, differences INTEGER NOT NULL DEFAULT 0, elapsed REAL NOT NULL DEFAULT 0, error TEXT); CREATE TABLE IF NOT EXISTS batches (id INTEGER PRIMARY KEY, name TEXT NOT NULL, created_at TEXT NOT NULL, status TEXT NOT NULL, task_count INTEGER NOT NULL, completed_count INTEGER NOT NULL DEFAULT 0); CREATE TABLE IF NOT EXISTS batch_tasks (id INTEGER PRIMARY KEY, batch_id INTEGER NOT NULL REFERENCES batches(id) ON DELETE CASCADE, name TEXT NOT NULL, rules_file TEXT NOT NULL, status TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, result_id INTEGER, elapsed REAL NOT NULL DEFAULT 0, error TEXT)")
         columns = {row[1] for row in self.db.execute("PRAGMA table_info(diffs)")}
         if "review_status" not in columns:
             self.db.execute("ALTER TABLE diffs ADD COLUMN review_status TEXT NOT NULL DEFAULT '未处理'")
@@ -101,6 +101,20 @@ class ResultStore:
 
     def jobs(self):
         return [{"name": row[0], "rules": row[1], "schedule": row[2], "status": row[3], "run_count": row[4], "failure_count": row[5], "last_run": row[6], "last_error": row[7]} for row in self.db.execute("SELECT name,rules_file,schedule,status,run_count,failure_count,last_run,last_error FROM jobs ORDER BY name")]
+
+    def save_scheduler_run(self, job_name, rules_file, status, differences=0, elapsed=0.0, error=None, started_at=None):
+        """Persist one scheduler execution, including failures before a result is saved."""
+        self.db.execute(
+            "INSERT INTO scheduler_runs(job_name,started_at,rules_file,status,differences,elapsed,error) VALUES(?,?,?,?,?,?,?)",
+            (job_name, started_at or datetime.now(timezone.utc).isoformat(), str(rules_file), status, int(differences or 0), float(elapsed or 0), error),
+        )
+        self.db.commit()
+
+    def scheduler_runs(self, limit=100):
+        return [
+            {"id": row[0], "job_name": row[1], "started_at": row[2], "rules_file": row[3], "status": row[4], "differences": row[5], "elapsed": row[6], "error": row[7]}
+            for row in self.db.execute("SELECT id,job_name,started_at,rules_file,status,differences,elapsed,error FROM scheduler_runs ORDER BY id DESC LIMIT ?", (int(limit),))
+        ]
 
     def close(self): self.db.close()
     def __enter__(self): return self
