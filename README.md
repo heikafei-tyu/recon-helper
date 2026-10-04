@@ -54,7 +54,16 @@ python -m pytest -q
 | `init` | 规则向导 | [init](docs/manual/init.md) |
 | `validate` | 规则预检查 | [run](docs/manual/run.md) |
 | `profile` | 配置预设 | [profiles](docs/profiles.md) |
+| `config` | 查看 .reconrc 生效配置 | 本页“运行产物” |
 | `doctor` | 本机环境体检 | 本页“文档索引” |
+| `review` | 差异复核标记 | [review](docs/manual/history.md) |
+| `dryrun` | 单规则模拟调试 | [dryrun](docs/manual/run.md) |
+| `rules` | 规则版本对比 | [rules](docs/manual/run.md) |
+| `plan` | 计划编排执行 | [plan](docs/execution-plan.md) |
+| `schedule` | 定时核对调度 | [schedule](docs/manual/history.md) |
+| `ops` | 批量运维编排 | [operations](docs/operations.md) |
+| `list` / `logs` / `show` | 调度与历史查询 | [schedule](docs/manual/history.md) |
+| `start` / `stop` / `use` | 配置切换 | [profiles](docs/profiles.md) |
 
 ## 最小规则
 
@@ -116,6 +125,8 @@ API `POST /reconcile` 支持 `page` 和 `page_size` 分页参数，`GET /history
 - [Web/API 使用](docs/web.md)、[性能说明](docs/performance.md)和[部署指南](DEPLOYMENT.md)。
 - [场景分类目录](docs/scenarios-catalog.md)与[场景图库](docs/examples-gallery.md)。
 - [质量评分](docs/quality.md)、[通知](docs/notify.md)、[配置 Profile](docs/profiles.md)和[插件](docs/plugins.md)。
+- [架构说明](docs/architecture.md)（模块划分与数据流）与[术语表](docs/glossary.md)。
+- [执行计划说明](docs/execution-plan.md)与[运维操作手册](docs/operations.md)。
 
 运行 `recon doctor` 可检查 Python/依赖、编码、磁盘空间、`.reconrc` 和历史数据库健康度；体检结果以表格数据形式输出为 JSON，状态分为 `PASS` 和 `FAIL`。
 
