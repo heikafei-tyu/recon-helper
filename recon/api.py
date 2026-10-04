@@ -7,6 +7,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Request, Que
 from .config import load_config
 from .store import ResultStore
 from .notify import NotificationSettings, notify_result
+from .operations import history_summary, review_queue
 from fastapi.responses import HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
@@ -99,6 +100,14 @@ def web_dashboard(request: Request):
         items = store.query(limit=1000)
     recent_rows = "".join(f"<tr><td>{item['id']}</td><td>{item['created_at']}</td><td>{item['severity']}</td><td>{item['difference_count']}</td></tr>" for item in items[:10])
     return render_template("dashboard.html", {"total": len(items), "differences": sum(item["difference_count"] for item in items), "recent_rows": recent_rows})
+
+@app.get("/dashboard/summary")
+def dashboard_summary():
+    return history_summary()
+
+@app.get("/review-queue")
+def review_queue_endpoint(limit: int = Query(100, ge=1, le=1000)):
+    return review_queue(limit=limit)
 
 @app.post("/reconcile")
 async def reconcile(file: UploadFile = File(...), rules: str = Form(...), notify_webhook: str | None = Form(None), page: int = Query(1, ge=1), page_size: int = Query(100, ge=1, le=1000)):

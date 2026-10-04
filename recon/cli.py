@@ -19,6 +19,7 @@ from .rules_diff import diff_rules
 from .notify import NotificationSettings, notify_result
 from .store import ResultStore
 from .dryrun import dry_run
+from .operations import run_batch, history_summary, review_queue, export_history
 import yaml
 
 
@@ -91,6 +92,11 @@ def main(argv=None):
     rules_diff_cmd.add_argument("new")
     dryrun = commands.add_parser("dryrun", help="解释单条规则的中间计算过程")
     dryrun.add_argument("rules")
+    batch = commands.add_parser("batch", help="批量执行规则并写入历史")
+    batch.add_argument("rules", nargs="+")
+    batch.add_argument("--stop-on-error", action="store_true")
+    ops = commands.add_parser("ops", help="查看运营统计")
+    ops.add_argument("view", choices=["summary", "review-queue"])
     review = commands.add_parser("review", help="批量更新差异复核状态")
     review.add_argument("history_id", type=int)
     review.add_argument("--status", required=True, choices=["未处理", "已确认无误", "已修复"])
@@ -122,6 +128,10 @@ def main(argv=None):
                 result = store.review(args.history_id, args.status, args.note, args.diff_id)
         elif args.command == "dryrun":
             result = dry_run(args.rules)
+        elif args.command == "batch":
+            result = run_batch(args.rules, stop_on_error=args.stop_on_error)
+        elif args.command == "ops":
+            result = history_summary() if args.view == "summary" else review_queue()
         elif args.command == "profile":
             if args.profile_command == "list":
                 result = {"profiles": list_profiles()}
