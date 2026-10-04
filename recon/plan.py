@@ -76,23 +76,32 @@ class ExecutionPlan:
             "seconds": round(perf_counter() - started, 6),
         }
 
-    def run_with_policy(self, policy=None, fail_fast=False):
+    def run_with_policy(self, policy=None, fail_fast=False, store=None, plan_file="", run_id=None, idempotency_key=None):
         """按层执行并返回带执行事件的结果，适合 CLI 和调度器使用。"""
         policy = policy or RetryPolicy()
         started = perf_counter()
         reports = {}
         stopped = False
         layers = self.layers()
+        if store and run_id is None:
+            run_id = store.create_plan_run(plan_file, [task.name for layer in layers for task in layer], idempotency_key)
+        completed = {item["name"] for item in store.plan_task_status(run_id) if item["status"] == "success"} if store and run_id else set()
         for layer in layers:
             for task in layer:
+                if task.name in completed:
+                    reports[task.name] = execute(task.name, lambda: None, RetryPolicy(1))
+                    reports[task.name].status = "skipped"
+                    continue
                 report = execute(task.name, lambda task=task: run_rules(task.rules_file), policy)
                 reports[task.name] = report
+                if store and run_id:
+                    store.update_plan_task(run_id, task.name, report.status, report.attempts, sum(e.elapsed for e in report.events), report.error)
                 if fail_fast and not report.succeeded:
                     stopped = True
                     break
             if stopped:
                 break
-        return {
+        output = {
             "results": {name: report.result for name, report in reports.items() if report.succeeded},
             "execution": {
                 name: {
@@ -107,6 +116,10 @@ class ExecutionPlan:
             "stopped": stopped,
             "seconds": round(perf_counter() - started, 6),
         }
+        if store and run_id:
+            store.finish_plan_run(run_id, "stopped" if stopped else "success", output["seconds"])
+            output["run_id"] = run_id
+        return output
 
 
 def plan_from_config(config, base=Path(".")):

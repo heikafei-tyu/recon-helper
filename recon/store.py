@@ -18,7 +18,7 @@ class ResultStore:
             # Another initializer may hold the schema lock; normal writes still use the busy timeout.
             pass
         self.db.executescript(
-            "CREATE TABLE IF NOT EXISTS results (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, rules TEXT NOT NULL, fingerprints TEXT NOT NULL, severity TEXT NOT NULL, difference_count INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS diffs (id INTEGER PRIMARY KEY, result_id INTEGER NOT NULL REFERENCES results(id) ON DELETE CASCADE, table_name TEXT, severity TEXT, payload TEXT NOT NULL, review_status TEXT NOT NULL DEFAULT '未处理', review_note TEXT NOT NULL DEFAULT ''); CREATE TABLE IF NOT EXISTS audit_log (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, actor TEXT NOT NULL, method TEXT NOT NULL, path TEXT NOT NULL, status INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS jobs (name TEXT PRIMARY KEY, rules_file TEXT NOT NULL, schedule TEXT NOT NULL, status TEXT NOT NULL, run_count INTEGER NOT NULL DEFAULT 0, failure_count INTEGER NOT NULL DEFAULT 0, last_run TEXT, last_error TEXT); CREATE TABLE IF NOT EXISTS scheduler_runs (id INTEGER PRIMARY KEY, job_name TEXT NOT NULL, started_at TEXT NOT NULL, rules_file TEXT NOT NULL, status TEXT NOT NULL, differences INTEGER NOT NULL DEFAULT 0, elapsed REAL NOT NULL DEFAULT 0, error TEXT); CREATE TABLE IF NOT EXISTS batches (id INTEGER PRIMARY KEY, name TEXT NOT NULL, created_at TEXT NOT NULL, status TEXT NOT NULL, task_count INTEGER NOT NULL, completed_count INTEGER NOT NULL DEFAULT 0); CREATE TABLE IF NOT EXISTS batch_tasks (id INTEGER PRIMARY KEY, batch_id INTEGER NOT NULL REFERENCES batches(id) ON DELETE CASCADE, name TEXT NOT NULL, rules_file TEXT NOT NULL, status TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, result_id INTEGER, elapsed REAL NOT NULL DEFAULT 0, error TEXT)"
+            "CREATE TABLE IF NOT EXISTS results (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, rules TEXT NOT NULL, fingerprints TEXT NOT NULL, severity TEXT NOT NULL, difference_count INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS diffs (id INTEGER PRIMARY KEY, result_id INTEGER NOT NULL REFERENCES results(id) ON DELETE CASCADE, table_name TEXT, severity TEXT, payload TEXT NOT NULL, review_status TEXT NOT NULL DEFAULT '未处理', review_note TEXT NOT NULL DEFAULT ''); CREATE TABLE IF NOT EXISTS audit_log (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, actor TEXT NOT NULL, method TEXT NOT NULL, path TEXT NOT NULL, status INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS jobs (name TEXT PRIMARY KEY, rules_file TEXT NOT NULL, schedule TEXT NOT NULL, status TEXT NOT NULL, run_count INTEGER NOT NULL DEFAULT 0, failure_count INTEGER NOT NULL DEFAULT 0, last_run TEXT, last_error TEXT); CREATE TABLE IF NOT EXISTS scheduler_runs (id INTEGER PRIMARY KEY, job_name TEXT NOT NULL, started_at TEXT NOT NULL, rules_file TEXT NOT NULL, status TEXT NOT NULL, differences INTEGER NOT NULL DEFAULT 0, elapsed REAL NOT NULL DEFAULT 0, error TEXT); CREATE TABLE IF NOT EXISTS batches (id INTEGER PRIMARY KEY, name TEXT NOT NULL, created_at TEXT NOT NULL, status TEXT NOT NULL, task_count INTEGER NOT NULL, completed_count INTEGER NOT NULL DEFAULT 0); CREATE TABLE IF NOT EXISTS batch_tasks (id INTEGER PRIMARY KEY, batch_id INTEGER NOT NULL REFERENCES batches(id) ON DELETE CASCADE, name TEXT NOT NULL, rules_file TEXT NOT NULL, status TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, result_id INTEGER, elapsed REAL NOT NULL DEFAULT 0, error TEXT); CREATE TABLE IF NOT EXISTS plan_runs (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL, plan_file TEXT NOT NULL, status TEXT NOT NULL, idempotency_key TEXT UNIQUE, elapsed REAL NOT NULL DEFAULT 0, error TEXT); CREATE TABLE IF NOT EXISTS plan_tasks (id INTEGER PRIMARY KEY, run_id INTEGER NOT NULL REFERENCES plan_runs(id) ON DELETE CASCADE, name TEXT NOT NULL, status TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, elapsed REAL NOT NULL DEFAULT 0, error TEXT, UNIQUE(run_id,name))"
         )
         columns = {row[1] for row in self.db.execute("PRAGMA table_info(diffs)")}
         if "review_status" not in columns:
@@ -183,6 +183,35 @@ class ResultStore:
             self.save(data.get("rules", {}), {"differences": data.get("differences", [])}, data.get("files", {}))
             count += 1
         return count
+
+    def create_plan_run(self, plan_file, task_names, idempotency_key=None):
+        if idempotency_key:
+            existing = self.db.execute("SELECT id FROM plan_runs WHERE idempotency_key=?", (idempotency_key,)).fetchone()
+            if existing:
+                return existing[0]
+        cursor = self.db.execute(
+            "INSERT INTO plan_runs(created_at,plan_file,status,idempotency_key) VALUES(?,?,?,?)",
+            (datetime.now(timezone.utc).isoformat(), str(plan_file), "running", idempotency_key),
+        )
+        run_id = cursor.lastrowid
+        self.db.executemany("INSERT INTO plan_tasks(run_id,name,status) VALUES(?,?,?)", [(run_id, name, "pending") for name in task_names])
+        self.db.commit()
+        return run_id
+
+    def update_plan_task(self, run_id, name, status, attempts=0, elapsed=0.0, error=None):
+        self.db.execute("UPDATE plan_tasks SET status=?,attempts=?,elapsed=?,error=? WHERE run_id=? AND name=?", (status, attempts, elapsed, error, run_id, name))
+        self.db.commit()
+
+    def finish_plan_run(self, run_id, status, elapsed=0.0, error=None):
+        self.db.execute("UPDATE plan_runs SET status=?,elapsed=?,error=? WHERE id=?", (status, elapsed, error, run_id))
+        self.db.commit()
+
+    def plan_runs(self, limit=50):
+        rows = self.db.execute("SELECT id,created_at,plan_file,status,idempotency_key,elapsed,error FROM plan_runs ORDER BY id DESC LIMIT ?", (limit,))
+        return [{"id": r[0], "created_at": r[1], "plan_file": r[2], "status": r[3], "idempotency_key": r[4], "elapsed": r[5], "error": r[6]} for r in rows]
+
+    def plan_task_status(self, run_id):
+        return [{"name": r[0], "status": r[1], "attempts": r[2], "elapsed": r[3], "error": r[4]} for r in self.db.execute("SELECT name,status,attempts,elapsed,error FROM plan_tasks WHERE run_id=? ORDER BY id", (run_id,))]
 
     def audit(self, actor, method, path, status):
         self.db.execute(

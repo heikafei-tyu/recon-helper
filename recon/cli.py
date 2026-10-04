@@ -90,12 +90,15 @@ def main(argv=None):
     logs_schedule = schedule_commands.add_parser("logs")
     logs_schedule.add_argument("--limit", type=int, default=20)
     plan = commands.add_parser("plan", help="按依赖计划执行多个规则")
-    plan.add_argument("action_or_config", help="run 或 YAML 计划文件")
+    plan.add_argument("action_or_config", nargs="?", help="run 或 YAML 计划文件")
     plan.add_argument("config", nargs="?", help="使用 run 时的 YAML 计划文件")
     plan.add_argument("--attempts", type=int, default=1)
     plan.add_argument("--delay", type=float, default=0.0)
     plan.add_argument("--timeout", type=float)
     plan.add_argument("--fail-fast", action="store_true")
+    plan.add_argument("--idempotency-key")
+    plan.add_argument("--run-id", type=int)
+    plan.add_argument("--status", action="store_true")
     rules_cmd = commands.add_parser("rules", help="规则版本工具")
     rules_commands = rules_cmd.add_subparsers(dest="rules_command", required=True)
     rules_diff_cmd = rules_commands.add_parser("diff", help="比较两版 YAML 规则")
@@ -134,14 +137,21 @@ def main(argv=None):
         elif args.command == "history":
             result = compare_history(args.dir, *args.compare) if args.compare else {"history": load_history(args.dir)}
         elif args.command == "plan":
+            if args.status:
+                with ResultStore() as store:
+                    result = {"runs": store.plan_runs()}
+                print(json.dumps(result, ensure_ascii=False, indent=2))
+                return 0
             config_name = args.config if args.action_or_config == "run" else args.action_or_config
             source = Path(config_name)
             config = yaml.safe_load(source.read_text(encoding="utf-8-sig"))
             items = config.get("tasks") if isinstance(config, dict) else config
             execution_plan = plan_from_config(items, source.parent)
-            result = execution_plan.run_with_policy(
-                RetryPolicy(args.attempts, args.delay, args.timeout), args.fail_fast
-            )
+            with ResultStore() as store:
+                result = execution_plan.run_with_policy(
+                    RetryPolicy(args.attempts, args.delay, args.timeout), args.fail_fast,
+                    store=store, plan_file=source, run_id=args.run_id, idempotency_key=args.idempotency_key,
+                )
         elif args.command == "rules":
             result = diff_rules(args.old, args.new)
         elif args.command == "review":

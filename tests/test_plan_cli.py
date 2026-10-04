@@ -34,3 +34,17 @@ def test_plan_cli_retries_invalid_rule_and_fail_fast(tmp_path, capsys):
     payload = json.loads(capsys.readouterr().out)
     assert payload["stopped"] is True
     assert payload["execution"]["broken"]["attempts"] == 2
+
+
+def test_plan_cli_persists_run_and_idempotency(tmp_path, capsys, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "left.csv").write_text("id,v\na,1\n", encoding="utf-8")
+    (tmp_path / "right.csv").write_text("id,v\na,1\n", encoding="utf-8")
+    (tmp_path / "rules.yaml").write_text("left: left.csv\nright: right.csv\nkey: id\ncolumns: [v]\n", encoding="utf-8")
+    (tmp_path / "plan.yaml").write_text("tasks:\n  - name: daily\n    rules: rules.yaml\n", encoding="utf-8")
+    assert main(["plan", str(tmp_path / "plan.yaml"), "--idempotency-key", "daily-1"]) == 0
+    first = json.loads(capsys.readouterr().out)
+    assert first["run_id"] == 1
+    assert main(["plan", str(tmp_path / "plan.yaml"), "--idempotency-key", "daily-1"]) == 0
+    second = json.loads(capsys.readouterr().out)
+    assert second["run_id"] == 1
