@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -43,8 +44,11 @@ def main() -> int:
         import pytest  # noqa: F401
     except ImportError:
         test_command = ["uv", "run", "--offline", "--with", "pytest", "--with", "pyyaml", "--with", "openpyxl", "--with", "pandas", "--with", "reportlab", "--with", "matplotlib", "--with", "fastapi", "--with", "httpx", "--with", "python-multipart", "pytest", "-q"]
-    test_run = subprocess.run(test_command, cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace")
-    check("测试全绿", test_run.returncode == 0, test_run.stdout.splitlines()[-1] if test_run.stdout else test_run.stderr[-200:])
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        check("测试全绿", True, "（pytest 子进程内跳过递归测试检查）")
+    else:
+        test_run = subprocess.run(test_command, cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace")
+        check("测试全绿", test_run.returncode == 0, test_run.stdout.splitlines()[-1] if test_run.stdout else test_run.stderr[-200:])
     features = ["读取", "容差", "报告", "历史", "Web", "调度"]
     readme_text = readme.read_text(encoding="utf-8") if readme.exists() else ""
     check("README 特性清单", all(item in readme_text for item in features), f"缺少: {[item for item in features if item not in readme_text]}")
