@@ -1,0 +1,4 @@
+contract_id,step,performance_obligation,control_transfer_date,recognition_timing,recognized_amount,judgement_basis
+合同-001,五步法-1,识别合同,2024-01-01,时点确认,0,合同已批准且可收回
+合同-001,五步法-5,设备交付,2024-03-31,时点确认,500000,客户签收并取得控制权
+合同-002,五步法-5,持续服务,2024-03-31,时段确认,120000,履约进度可可靠计量

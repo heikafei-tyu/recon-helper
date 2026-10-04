@@ -1,0 +1,4 @@
+left: left.csv
+right: right.csv
+key: subsidiary
+columns: [period, ownership_before, ownership_after, consolidation_scope, elimination_amount]

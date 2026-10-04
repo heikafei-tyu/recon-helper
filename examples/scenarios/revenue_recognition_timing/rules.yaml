@@ -1,0 +1,6 @@
+left: left.csv
+right: right.csv
+key: contract_id
+keys: [contract_id, step]
+columns: [performance_obligation, control_transfer_date, recognition_timing, recognized_amount, judgement_basis]
+normalize: {trim: true}
