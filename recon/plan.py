@@ -93,7 +93,20 @@ class ExecutionPlan:
                     skipped = execute(task.name, lambda: None, RetryPolicy(1))
                     skipped.status = "skipped"
                     reports[task.name] = skipped
-            pending = [task for task in layer if task.name not in completed]
+            pending = []
+            for task in layer:
+                if task.name in completed:
+                    continue
+                blocked_by = [dependency for dependency in task.depends_on if dependency in reports and not reports[dependency].succeeded]
+                if blocked_by:
+                    blocked = execute(task.name, lambda: None, RetryPolicy(1))
+                    blocked.status = "blocked"
+                    blocked.error = f"依赖任务未成功：{', '.join(blocked_by)}"
+                    reports[task.name] = blocked
+                    if store and run_id:
+                        store.update_plan_task(run_id, task.name, "blocked", 0, 0, blocked.error)
+                    continue
+                pending.append(task)
             if max_workers > 1 and len(pending) > 1 and not fail_fast:
                 with ThreadPoolExecutor(max_workers=min(max_workers, len(pending))) as pool:
                     futures = {task.name: pool.submit(execute, task.name, lambda task=task: run_rules(task.rules_file), policy) for task in pending}

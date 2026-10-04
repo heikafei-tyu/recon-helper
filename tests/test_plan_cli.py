@@ -60,3 +60,15 @@ def test_plan_parallel_layer_runs_all_tasks(tmp_path, capsys):
     assert main(["plan", str(plan), "--workers", "2"]) == 0
     payload = json.loads(capsys.readouterr().out)
     assert {payload["execution"][key]["status"] for key in ("a", "b")} == {"success"}
+
+
+def test_plan_blocks_dependent_task_after_failure(tmp_path, capsys):
+    plan = tmp_path / "plan.yaml"
+    plan.write_text(
+        "tasks:\n  - name: broken\n    rules: missing.yaml\n  - name: downstream\n    rules: missing2.yaml\n    depends_on: [broken]\n",
+        encoding="utf-8",
+    )
+    assert main(["plan", str(plan)]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["execution"]["broken"]["status"] == "failed"
+    assert payload["execution"]["downstream"]["status"] == "blocked"
