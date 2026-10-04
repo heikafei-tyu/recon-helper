@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "recon-helper"
-version = "0.1.0"
+version = "1.0.1"
 description = "本地 CSV、XLSX 和 JSON 对账核对工具"
 readme = "README.md"
 license = "MIT"

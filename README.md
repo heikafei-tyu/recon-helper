@@ -62,7 +62,7 @@ python -m pytest -q
 | `plan` | 计划编排执行 | [plan](docs/execution-plan.md) |
 | `schedule` | 定时核对调度 | [schedule](docs/manual/history.md) |
 | `batch` | 批量运维编排 | [batch](docs/operations.md) |
-| `diff` | 规则版本对比 | [diff](docs/manual/run.md) |
+| `rules diff` | 规则版本对比 | [rules](docs/manual/run.md) |
 | `ops` | 批量运维编排 | [operations](docs/operations.md) |
 | `list` / `logs` / `show` | 调度与历史查询 | [schedule](docs/manual/history.md) |
 | `start` / `stop` / `use` | 配置切换 | [profiles](docs/profiles.md) |
@@ -143,7 +143,7 @@ API `POST /reconcile` 支持 `page` 和 `page_size` 分页参数，`GET /history
 
 `examples/scenarios/` 包含应收账款、供应商、库存、报销、跨年度、预算、银行等独立业务场景，每个目录都有规则、预期结果和测试。数据默认只在本机处理；共享前请清理密钥、客户信息、内部地址和真实账号。
 
-完整的 58 个场景分类索引见 [场景目录](docs/scenarios-catalog.md)。
+当前仓库包含 50 个独立场景目录，分类索引见 [场景目录](docs/scenarios-catalog.md)。
 
 ## 开发
 
