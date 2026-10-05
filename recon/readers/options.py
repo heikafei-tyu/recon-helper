@@ -11,6 +11,7 @@ class ReaderOptions:
     skip_blank: bool = True
     comment: str | None = None
     max_rows: int | None = None
+    normalize_headers: bool = True
 
     def __post_init__(self):
         if self.header_row < 0:

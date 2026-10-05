@@ -15,12 +15,19 @@ class Table:
     sheet_name: str | None = None
 
     @classmethod
-    def from_records(cls, header, records):
-        columns = tuple(str(c).strip() if c is not None else "" for c in header)
-        if not columns or any(not c for c in columns):
-            raise ReadError("列名不能为空")
+    def from_records(cls, header, records, *, normalize_headers=True):
+        raw_columns = tuple("" if c is None else str(c) for c in header)
+        columns = tuple(c.strip() if normalize_headers else c for c in raw_columns)
+        if not columns:
+            raise ReadError("列名不能为空：表头没有任何列")
+        empty = [str(index + 1) for index, column in enumerate(columns) if not column]
+        if empty:
+            raise ReadError(f"列名不能为空：第 {', '.join(empty)} 列为空（原始值为空）")
         if len(set(columns)) != len(columns):
-            raise ReadError("列名不能重复")
+            duplicates = sorted({column for column in columns if columns.count(column) > 1})
+            locations = {column: [index + 1 for index, item in enumerate(columns) if item == column] for column in duplicates}
+            detail = "; ".join(f"{column}: 第{','.join(map(str, indexes))}列" for column, indexes in locations.items())
+            raise ReadError(f"列名不能重复：{detail}")
         rows = []
         for number, record in enumerate(records, 2):
             if len(record) != len(columns):
