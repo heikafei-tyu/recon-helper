@@ -83,6 +83,15 @@ def test_priority_audit_and_raw_rounding(tmp_path):
     assert item["ignored_rules"] == ["strict"]
 
 
+def test_mismatch_contains_tolerance_audit(tmp_path):
+    rules = "left: left.csv\nright: right.csv\nkey: id\ncolumns: [amount]\ntolerance:\n  amount:\n    - name: strict\n      absolute: '0.01'\n      priority: 2\n"
+    path = setup_rule(tmp_path, "id,amount\na,100\n", "id,amount\na,101\n", rules)
+    item = run_rules(path)["differences"][0]
+    assert item["tolerance_reason"] == "超过所有配置容差"
+    assert item["tolerance"] == "0.01"
+    assert item["tolerance_attempted"] == ["strict"]
+
+
 def test_text_normalization_and_null_policy(tmp_path):
     rules = "left: left.csv\nright: right.csv\nkey: id\ncolumns: [name, amount]\nnormalize:\n  trim: true\n  casefold: true\nnull_policy: equal\n"
     path = setup_rule(tmp_path, "id,name,amount\n A , Zhang San,\n", "id,name,amount\na, zhang san,\n", rules)

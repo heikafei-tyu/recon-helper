@@ -226,6 +226,7 @@ def run_rules(filename, timeout=None, progress=False):
             if a == b:
                 continue
             delta = None
+            decision = None
             try:
                 da, db = normalize_number(a), normalize_number(b)
                 if da.is_finite() and db.is_finite():
@@ -317,6 +318,9 @@ def run_rules(filename, timeout=None, progress=False):
                     "left_value": a,
                     "right_value": b,
                     "difference": delta,
+                    "tolerance": decision.get("threshold") if decision else None,
+                    "tolerance_attempted": decision.get("ignored_rules", []) if decision else [],
+                    "tolerance_reason": "超过所有配置容差" if decision and not decision.get("matched") else None,
                 }
             )
     return {"left_rows": len(left), "right_rows": len(right), "differences": differences, "diagnostics": diagnostics}

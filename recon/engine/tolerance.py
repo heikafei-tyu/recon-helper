@@ -23,6 +23,7 @@ def decide(left, right, rules=None):
         raise ValueError("容差规则必须是对象列表")
     ordered = sorted(candidates, key=lambda item: item.get("priority", 0), reverse=True)
     ignored = []
+    last_threshold = Decimal("0")
     for configured in ordered:
         rule = dict(configured)
         band = None
@@ -60,7 +61,8 @@ def decide(left, right, rules=None):
         if absolute < 0 or relative < 0:
             raise ValueError("容差必须是非负数")
         threshold = max(absolute, max(abs(compared_left), abs(compared_right)) * relative)
+        last_threshold = max(last_threshold, threshold)
         if difference == 0 or abs(difference) <= threshold:
             return {"matched": True, "difference": str(difference), "threshold": str(threshold), "tolerance_type": "absolute" if absolute >= max(abs(compared_left), abs(compared_right)) * relative else "relative", "tolerance_rule": rule.get("name", "default"), "tolerance_band": band, "rule_priority": rule.get("priority", 0), "rounding_mode": mode, "rounding_digits": digits, "ignored_rules": [item.get("name", "default") for item in ignored]}
         ignored.append(rule)
-    return {"matched": False, "difference": str(left_value - right_value), "threshold": "0", "ignored_rules": [item.get("name", "default") for item in ignored]}
+    return {"matched": False, "difference": str(left_value - right_value), "threshold": str(last_threshold), "ignored_rules": [item.get("name", "default") for item in ignored]}
