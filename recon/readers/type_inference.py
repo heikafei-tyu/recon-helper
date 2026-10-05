@@ -12,6 +12,9 @@ def infer(values):
         return "boolean"
     if all(_parse_date(value) is not None for value in values):
         return "date"
+    numeric_values = [_parse_number(value) for value in values]
+    if all(value is not None for value in numeric_values):
+        return "number" if any(not value.is_integer() for value in numeric_values) else "integer"
     numeric = []
     for value in values:
         try:
@@ -43,3 +46,18 @@ def _parse_date(value):
         except ValueError:
             return None
     return None
+
+
+def _parse_number(value):
+    text = str(value).strip().replace("￥", "").replace("¥", "").replace("$", "")
+    if text.endswith("%"):
+        text = text[:-1].strip()
+    if text.startswith("(") and text.endswith(")"):
+        text = "-" + text[1:-1]
+    text = text.replace(",", "").replace(" ", "")
+    if not text or not re.fullmatch(r"[-+]?\d+(?:\.\d+)?", text):
+        return None
+    try:
+        return float(text)
+    except ValueError:
+        return None
