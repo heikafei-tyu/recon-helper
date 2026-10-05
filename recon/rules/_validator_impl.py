@@ -14,6 +14,12 @@ def validate_rules(filename):
         return [f"规则文件不可读取：{exc}"]
     if not isinstance(raw, dict):
         return ["根节点必须是对象"]
+    if "rule_groups" in raw:
+        groups = raw["rule_groups"]
+        if not isinstance(groups, list) or not groups:
+            errors.append("rule_groups 必须是非空列表")
+        elif any(not isinstance(group, dict) for group in groups):
+            errors.append("rule_groups 每项必须是对象")
     for key in ("left", "right", "columns"):
         if key not in raw:
             errors.append(f"缺少键：{key}")

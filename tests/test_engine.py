@@ -103,6 +103,22 @@ def test_rule_filters_and_field_transforms(tmp_path):
     assert [item["status"] for item in run_rules(path)["differences"]] == ["right_only"]
 
 
+def test_filter_diagnostics_are_returned(tmp_path):
+    rules = "left: left.csv\nright: right.csv\nkey: id\ncolumns: [amount]\nfilters:\n  left:\n    - field: status\n      op: eq\n      value: keep\n"
+    path = setup_rule(tmp_path, "id,amount,status\na,1,skip\n", "id,amount\na,1\n", rules)
+    result = run_rules(path)
+    assert result["diagnostics"]["filtered"]["left"] == 1
+
+
+def test_rule_groups_run_in_order_and_record_path(tmp_path):
+    setup_rule(tmp_path, "id,amount\na,1\n", "id,amount\na,2\n")
+    path = tmp_path / "rules.yaml"
+    path.write_text("left: left.csv\nright: right.csv\nkey: id\ncolumns: [amount]\nrule_groups:\n  - name: first\n    columns: [amount]\n  - name: second\n    columns: [amount]\n", encoding="utf-8")
+    result = run_rules(path)
+    assert len(result["rule_groups"]) == 2
+    assert result["differences"][0]["rule_group"] == "first"
+
+
 def test_composite_key_and_field_mapping(tmp_path):
     rules = "left: left.csv\nright: right.csv\nkeys: [customer, date]\ncolumns:\n  - left: amount\n    right: total\n"
     path = setup_rule(

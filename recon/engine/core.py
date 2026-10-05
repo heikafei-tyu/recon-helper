@@ -27,6 +27,26 @@ def run_rules(filename, timeout=None, progress=False):
     rule_config = load_rule_config(filename)
     path = rule_config.source
     config = rule_config.raw
+    if isinstance(config, dict) and "rule_groups" in config:
+        groups = config["rule_groups"]
+        if not isinstance(groups, list) or not groups or not all(isinstance(group, dict) for group in groups):
+            raise ValueError("rule_groups 必须是非空规则对象列表")
+        import yaml
+        combined, summaries = [], []
+        base = {key: value for key, value in config.items() if key != "rule_groups"}
+        for index, group in enumerate(groups, 1):
+            temp = path.parent / f".recon-rule-group-{index}.yaml"
+            temp.write_text(yaml.safe_dump({**base, **group}, allow_unicode=True), encoding="utf-8")
+            try:
+                result = run_rules(temp, timeout=timeout, progress=progress)
+            finally:
+                temp.unlink(missing_ok=True)
+            for item in result["differences"]:
+                item["rule_group"] = group.get("name", f"group_{index}")
+                item["rule_path"] = f"rule_groups[{index - 1}]"
+            combined.extend(result["differences"])
+            summaries.append({"name": group.get("name", f"group_{index}"), "difference_count": len(result["differences"])})
+        return {"left_rows": result["left_rows"], "right_rows": result["right_rows"], "differences": combined, "rule_groups": summaries}
     if "checks" in config:
         check_deadline()
         return {"left_rows": 0, "right_rows": 0, "differences": run_finance_checks(path.parent, config["checks"])}
@@ -134,6 +154,7 @@ def run_rules(filename, timeout=None, progress=False):
     ]
     total_rows = sum(len(table.rows) for table in tables)
     indexes = []
+    diagnostics = {"filtered": {"left": 0, "right": 0}}
     for table in tables:
         table_keys = left_keys if table is tables[0] else right_keys
         required = list(table_keys) + (
@@ -150,10 +171,12 @@ def run_rules(filename, timeout=None, progress=False):
             record = dict(zip(table.columns, row))
             filter_conditions = config.get("filters", {}).get("left" if table is tables[0] else "right", [])
             if not matches(record, filter_conditions):
+                diagnostics["filtered"]["left" if table is tables[0] else "right"] += 1
                 continue
             key = tuple(clean(row[index]) for index in key_indexes)
             if any(value is None or not str(value).strip() for value in key) or key in index:
-                raise ValueError(f"第 {number} 行关联键为空或重复")
+                reason = "关联键为空" if any(value is None or not str(value).strip() for value in key) else "关联键重复"
+                raise ValueError(f"第 {number} 行{reason}：{key}")
             index[key] = (number, dict(zip(table.columns, row)))
         indexes.append(index)
     left, right = indexes
@@ -284,4 +307,4 @@ def run_rules(filename, timeout=None, progress=False):
                     "difference": delta,
                 }
             )
-    return {"left_rows": len(left), "right_rows": len(right), "differences": differences}
+    return {"left_rows": len(left), "right_rows": len(right), "differences": differences, "diagnostics": diagnostics}
