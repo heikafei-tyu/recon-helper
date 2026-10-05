@@ -1,6 +1,10 @@
 from pathlib import Path
 
 from ..errors import ReadError
+from .options import ReaderOptions
+from .stream import iter_rows
+
+__all__ = ["ReaderOptions", "iter_rows", "read_table", "read_workbook"]
 
 
 def read_table(filename, encoding=None, sheet_name=None, sheet_index=0, skip_rows=0):

@@ -2,6 +2,36 @@ from openpyxl import load_workbook
 
 from ..errors import ReadError
 from ..model import Table
+from .options import ReaderOptions
+
+
+def iter_rows(path, options=None, sheet_name=None, sheet_index=0):
+    """以只读模式逐行返回 XLSX 数据行，跳过表头。"""
+    options = options or ReaderOptions()
+    book = load_workbook(path, read_only=True, data_only=True)
+    try:
+        if sheet_name is not None:
+            if sheet_name not in book.sheetnames:
+                raise ReadError(f"工作表不存在：{sheet_name}")
+            sheet = book[sheet_name]
+        else:
+            try:
+                sheet = book.worksheets[sheet_index]
+            except IndexError as exc:
+                raise ReadError(f"工作表序号不存在：{sheet_index}") from exc
+        yielded = 0
+        for index, cells in enumerate(sheet.iter_rows(values_only=True)):
+            if index <= options.header_row:
+                continue
+            row = list(cells)
+            if options.skip_blank and not any(value not in (None, "") for value in row):
+                continue
+            if options.max_rows is not None and yielded >= options.max_rows:
+                break
+            yielded += 1
+            yield row
+    finally:
+        book.close()
 
 
 def read(path, encoding=None, sheet_name=None, sheet_index=0, skip_rows=0):
