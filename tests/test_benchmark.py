@@ -1,6 +1,6 @@
 import csv
 
-from recon.benchmark import benchmark, benchmark_generated, stream_csv
+from recon.benchmark import benchmark, benchmark_baseline, benchmark_generated, stream_csv
 
 
 def test_streaming_benchmark(tmp_path):
@@ -51,3 +51,11 @@ def test_generated_benchmark_is_streaming():
     assert result["optimized"]["rows"] == 100_000
     assert result["optimized"]["peak_memory_mb"] < 20
     assert result["baseline"]["method"] == "full-table"
+    assert result["baseline"]["rows"] == 100_000
+    assert "memory_saved_mb" in result["comparison"]
+
+
+def test_baseline_and_streaming_have_same_rows(tmp_path):
+    path = tmp_path / "data.csv"
+    path.write_text("id\n1\n2\n3\n", encoding="utf-8")
+    assert benchmark(path)["rows"] == benchmark_baseline(path)["rows"]

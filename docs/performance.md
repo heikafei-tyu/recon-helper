@@ -10,6 +10,8 @@
 
 CSV 使用 `recon bench file.csv`，XLSX 使用相同命令并传入 `.xlsx` 文件。两者均逐行处理；XLSX 由 openpyxl `read_only=True` 打开，避免把全部单元格载入内存。
 
+`benchmark_generated()` 现在会真实执行两次：`optimized` 使用生成器逐行处理，`baseline` 将全部记录载入列表。输出中的 `comparison.seconds_saved` 和 `comparison.memory_saved_mb` 是两者差值，负数表示当前机器上全量方案反而更快或峰值更低，不应被解释为错误。
+
 并行核对使用 `run_rules_parallel([...], max_workers=...)`。默认线程数为 CPU 核数的一半，规则文件之间互不共享状态。`benchmark_parallel` 同时输出串行和并行耗时，适合比较多个独立月份规则。
 
 增量报告将文件指纹写入输出目录的 `recon_history.db`。首次发现旧的 `.manifest.json` 时自动导入 SQLite；导入后仍保留 JSON 文件作为兼容备份。SQLite 的路径主键和批量 upsert 适合上千个输入文件。

@@ -80,11 +80,26 @@ def benchmark_generated(rows=100_000, timeout=None, progress=False):
     with tempfile.TemporaryDirectory(prefix="recon-bench-") as directory:
         path = generate_benchmark_csv(Path(directory) / "generated.csv", rows)
         optimized = benchmark(path, timeout=timeout, progress=progress)
+        baseline = benchmark_baseline(path)
         return {
             "rows_requested": rows,
             "optimized": optimized,
-            "baseline": {"method": "full-table", "memory_note": "未执行全量载入，作为流式方案的理论对照"},
+            "baseline": baseline,
+            "comparison": {"seconds_saved": round(baseline["seconds"] - optimized["seconds"], 6), "memory_saved_mb": round(baseline["peak_memory_mb"] - optimized["peak_memory_mb"], 3)},
         }
+
+
+def benchmark_baseline(path):
+    """真实执行一次全量载入，作为流式方案的可重复对照。"""
+    started = time.perf_counter()
+    tracemalloc.start()
+    if Path(path).suffix.lower() == ".xlsx":
+        rows = list(stream_xlsx(path))
+    else:
+        rows = list(stream_csv(path))
+    _, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    return {"method": "full-table", "rows": len(rows), "seconds": round(time.perf_counter() - started, 6), "peak_memory_mb": round(peak / 1024 / 1024, 3)}
 
 
 def memory_curve(path, interval=0.1):
