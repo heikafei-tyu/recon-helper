@@ -10,6 +10,7 @@ from ..numbers import normalize_number
 from ..readers import read_table
 from ..transforms import transform
 from ..units import convert_amount, normalize_date
+from .tolerance import decide
 
 
 def run_rules(filename, timeout=None, progress=False):
@@ -230,6 +231,17 @@ def run_rules(filename, timeout=None, progress=False):
                 if da.is_finite() and db.is_finite():
                     configured = tolerance.get(column, {}) or {}
                     candidates = configured if isinstance(configured, list) else [configured]
+                    if da == db:
+                        continue
+                    decision = decide(da, db, candidates)
+                    if decision["matched"]:
+                        differences.append({"key": display_key, "status": "within_tolerance", "column": column,
+                            "left_value": a, "right_value": b, "difference": decision["difference"],
+                            "tolerance": decision["threshold"], "tolerance_type": decision.get("tolerance_type"),
+                            "tolerance_rule": decision.get("tolerance_rule"), "tolerance_band": decision.get("tolerance_band"),
+                            "relative_base": str(max(abs(da), abs(db))), "rule_priority": decision.get("rule_priority", 0),
+                            "rounding_mode": decision.get("rounding_mode", "raw"), "ignored_rules": decision.get("ignored_rules", [])})
+                        continue
                     candidates = [dict(default_tol, **candidate) for candidate in candidates]
                     candidates.sort(key=lambda item: item.get("priority", 0), reverse=True)
                     matched = False
