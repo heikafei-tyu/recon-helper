@@ -63,6 +63,17 @@
 | supplier_reconciliation | 供应商采购付款 | row_compare |
 | tax_calculation | 税费计算 | row_compare |
 | tsv_large_reconciliation | TSV 大文件 | row_compare |
+| budget_adjustment_tracking | 预算调增调减追踪 | row_compare |
+| budget_execution | 预算执行偏差 | row_compare/period_check |
+| consolidated_elimination | 合并抵消分录 | total_check |
+| consolidated_elimination_advanced | 多级合并抵消 | total_check/chain_check |
+| consolidation_scope_change | 合并范围变动 | chain_check |
+| cross_period_amortization | 跨期费用摊销 | period_check |
+| deposit_flow | 保证金缴纳返还扣款 | row_compare |
+| period_anomaly | 连续期间趋势异常 | period_check |
+| receivable_note_endorsement | 应收票据背书链路 | chain_check |
+| revenue_cost_matching | 收入成本配比 | total_check/period_check |
+| revenue_recognition_timing | 收入确认时点 | row_compare |
 
 ## 教学演示
 
