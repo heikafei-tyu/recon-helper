@@ -17,6 +17,8 @@ def test_streaming_benchmark(tmp_path):
     assert result["seconds"] >= 0
     assert result["peak_memory_mb"] >= 0
     assert result["duplicate_check"] is True
+    assert result["rows_per_second"] >= 0
+    assert result["memory_per_row_bytes"] >= 0
 
 
 def test_benchmark_without_duplicate_check(tmp_path):
@@ -59,3 +61,11 @@ def test_baseline_and_streaming_have_same_rows(tmp_path):
     path = tmp_path / "data.csv"
     path.write_text("id\n1\n2\n3\n", encoding="utf-8")
     assert benchmark(path)["rows"] == benchmark_baseline(path)["rows"]
+
+
+def test_empty_benchmark_reports_zero_row_rate(tmp_path):
+    path = tmp_path / "empty.csv"
+    path.write_text("id\n", encoding="utf-8")
+    result = benchmark(path)
+    assert result["rows"] == 0
+    assert result["rows_per_second"] == 0

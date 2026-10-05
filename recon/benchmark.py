@@ -55,13 +55,17 @@ def benchmark(path, key="id", check_duplicates=True, timeout=None, progress=Fals
             raise TimeoutError(f"超过 {timeout} 秒")
     _, peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
+    elapsed = round(time.perf_counter() - started, 6)
     return {
         "file": str(path),
         "format": path.suffix.lower().lstrip("."),
         "bytes": path.stat().st_size,
         "rows": rows,
         "duplicates": duplicates if check_duplicates else None,
-        "seconds": round(time.perf_counter() - started, 6),
+        "seconds": elapsed,
+        "rows_per_second": round(rows / elapsed, 3) if elapsed else 0,
+        "peak_memory_bytes": peak,
+        "memory_per_row_bytes": round(peak / rows, 3) if rows else 0,
         "peak_memory_mb": round(peak / 1024 / 1024, 3),
         "duplicate_check": check_duplicates,
     }
@@ -99,7 +103,9 @@ def benchmark_baseline(path):
         rows = list(stream_csv(path))
     _, peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
-    return {"method": "full-table", "rows": len(rows), "seconds": round(time.perf_counter() - started, 6), "peak_memory_mb": round(peak / 1024 / 1024, 3)}
+    elapsed = round(time.perf_counter() - started, 6)
+    count = len(rows)
+    return {"method": "full-table", "rows": count, "seconds": elapsed, "rows_per_second": round(count / elapsed, 3) if elapsed else 0, "peak_memory_bytes": peak, "memory_per_row_bytes": round(peak / count, 3) if count else 0, "peak_memory_mb": round(peak / 1024 / 1024, 3)}
 
 
 def memory_curve(path, interval=0.1):
